@@ -75,7 +75,7 @@ def battery_low():
     logging.info(f"Battery low:{battery_low}")
     return battery_low
 
-def battery_full():
+def get_battery_full():
     """return true if battery is full
      Keyword arguments: None
     """
