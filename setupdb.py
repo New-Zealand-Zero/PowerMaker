@@ -15,22 +15,9 @@ c.execute("DROP TABLE IF EXISTS DataPoint;")
 
 # Create tables
 c.execute(
-    "CREATE TABLE DataPoint (RecordID int, Record datetime, AnalogMoisture int, SoilMoisture int, Humidity int);"
-)
-c.execute(
-    "CREATE TABLE Forecast (ForecastID int, RecordID int, DateRecorded datetime, rain float);"
+    "CREATE TABLE DataPoint (RecordID int NOT NULL AUTO_INCREMENT, SpotPrice float, SolarGeneration int, PowerLoad int, BatteryCharge Float, Status varchar(30), Timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (RecordID) );"
 )
 
-c.execute("CREATE TABLE config (id varchar(20), value varchar(20) )")
-c.execute("ALTER TABLE `pihome`.`config` ADD UNIQUE `ID_Index` (`id`);")
-c.execute("INSERT INTO config VALUES ('skip', -1)")
-c.execute("INSERT INTO config VALUES ('version', 1)")
-c.execute("INSERT INTO config VALUES ('override', 1)")
-c.execute("INSERT INTO config VALUES ('temp', 20)")
-c.execute("INSERT INTO config VALUES ('humidity', 1)")
-c.execute("INSERT INTO config VALUES ('mintemp', 10)")
-c.execute("INSERT INTO config VALUES ('heating', 'F')")
-c.execute("INSERT INTO config VALUES ('watering', 'F')")
 
 conn.commit()
 c.close()

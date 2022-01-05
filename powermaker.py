@@ -5,7 +5,7 @@ from datetime import time
 import config
 
 # Importing supporting functions
-from powermakerfunctions import charging_time, get_battery_charge, is_CPD, get_spot_price, discharge_to_grid, from_solar, existing_load, get_battery_full, battery_low, charge_from_grid, reset_to_default
+from powermakerfunctions import *
 
 # Importing modules
 import logging # flexible event logging
@@ -18,6 +18,15 @@ if (config.PROD):
 else:
     logging.basicConfig(level=logging.INFO, format='%(asctime)s TEST %(message)s') 
 
+# Connect to the database.
+import pymysql
+conn = pymysql.connect(
+    db=config.DATABASE,    
+    user=config.USER,
+    passwd=config.PASSWD,
+    host='localhost')
+c = conn.cursor()
+
 time_to_charge=False
 chargeing_phase = True
 while(True):
@@ -25,50 +34,56 @@ while(True):
     try:
         #get current state
         spot_price = get_spot_price()
-        solar_generation = from_solar()
-        power_load = existing_load()
+        avg_spot_price = get_avg_spot_price()
+        export_price = avg_spot_price + (0.5 * config.SPOT_PRICE_IE_SPREAD)
+        import_price = avg_spot_price - (0.5 * config.SPOT_PRICE_IE_SPREAD)
+        solar_generation = get_solar_generation()
+        power_load = get_existing_load()
         battery_charge = get_battery_charge()
         battery_full = get_battery_full()
-        
+        battery_low = get_battery_low()
+                  
         if is_CPD():
             #there is CPD active so immediately go into low export state
-            logging.info(f"CPD: sport price is {spot_price}| battery @ {battery_charge} percent")
+            status = "Exporting - CPD active"
             discharge_to_grid(config.CPD_DISCARGE_RATE)
-            status = "CPD"
-         
-        elif spot_price<=config.MAXIMUM_CHARGE_PRICE and not battery_full:
+     
+        elif spot_price<= import_price and not battery_full:
             #import power from grid
-            multiplier = (config.MAXIMUM_CHARGE_PRICE-spot_price)/config.MAXIMUM_CHARGE_PRICE
+            status = "Importing - Spot price low"
+            multiplier = (import_price-spot_price)/import_price
             multiplier = max(0, min(multiplier, 1))
             charge_rate = 1000 * 1.73789 * math.exp(2.85588 * multiplier)
             charge_rate = charge_rate*2.5 #winter multiplier
-            # logging.info("CHARGE MULTIPLIER: %s", multiplier)
             charge_from_grid(min(30000, max(1000, int(charge_rate))))
-            status = "Import"
 
-        elif spot_price>config.MINIMUM_DISCHARGE_PRICE and not battery_low and not charging_time():
+        elif spot_price>export_price and not battery_low:
             #export power to grid
-            multiplier = (spot_price - config.MINIMUM_DISCHARGE_PRICE)/config.MINIMUM_DISCHARGE_PRICE
-            multiplier = max(0, min(multiplier, 1));
+            status = "Exporting - Spot Price High"
+            multiplier = (spot_price - export_price)/export_price
+            multiplier = max(0, min(multiplier, 1))
             discharge_rate = -1000 * 1.73789 * math.exp(2.85588 * multiplier)
-            # logging.info("DISCHARGE MULTIPLIER: %s", multiplier)
             discharge_to_grid(max(-30000, min(-1000, int(discharge_rate))))
-            status = "Export"
 
+        elif battery_low:
+            status = "No I/E - Battery Low"
+            reset_to_default() 
+        
+        elif battery_full:
+            status = "No I/E - Battery Full"
+            reset_to_default() #export power to grid ????
+               
         else:
-            #???
-            if battery_low():
-                logging.info("BATTERY LOW: %s precent | discharge paused ", battery_charge)
-                status = "Battery Low"
-            else:
-                logging.info("BATTERY FULL: discharge paused | battery @ %s percent", battery_charge)
-                status = "Battery Full"
+            status = "No I/E - Battery OK"
+            logging.info("BATTERY OK: battery @ %s percent", battery_charge)
             reset_to_default()
            
     except Exception as e:
         logging.warning("[Error {0}]".format(e))
 
-    #save record
-    print("Status")
-    logging.info('\r\n')
+    #log and save record  
+    logging.info(f"Status {status} \n")
+    c.execute(f"INSERT INTO DataPoint (SpotPrice, SolarGeneration , PowerLoad , BatteryCharge , Status) VALUES ({spot_price}, {solar_generation}, {power_load}, {battery_charge}, '{status}')")       
+    conn.commit()
+
     sleep(5)

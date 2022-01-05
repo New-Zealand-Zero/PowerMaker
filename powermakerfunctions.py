@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 """PowerMaker functions
     get_spot_price()
-    battery_low()
-    battery_full()
+    get_avg_spot_price()
+    get_battery_low()
+    get_battery_full()
+    get_solar_generation()
+    get_existing_load()       
     is_CPD()
     charge_from_grid()
     discharge_to_grid()
     charging_time()
-    from_solar()
-    existing_load()       
+
 """
 
 # Importing configeration
@@ -32,6 +34,15 @@ if (config.PROD):
     logging.basicConfig(filename='io.log', level=logging.INFO, format='%(asctime)s %(message)s')
 else:
     logging.basicConfig(level=logging.INFO, format='%(asctime)s TEST %(message)s') 
+
+# Connect to the database.
+import pymysql
+conn = pymysql.connect(
+    db=config.DATABASE,    
+    user=config.USER,
+    passwd=config.PASSWD,
+    host='localhost')
+c = conn.cursor()
 
 Defaults.Timeout = 25
 Defaults.Retries = 5
@@ -67,7 +78,7 @@ def get_spot_price():
     logging.info(f"SPOT PRICE:${spot_price}")
     conn.close()
 
-def battery_low():
+def get_battery_low():
     """return true if battery is low
      Keyword arguments: None
     """
@@ -104,11 +115,11 @@ def is_CPD():
     if (config.PROD):
         result = client.read_holding_registers(3422, unit=1)
         result = client.read_holding_registers(3422, unit=1)
-        logging.info("!!!!!!CPD ACTIVE!!!!!!!!" if result.registers[0] == 3 else "CPD INACTIVE")
+        logging.info("CPD ACTIVE" if result.registers[0] == 3 else "CPD INACTIVE")
         return result.registers[0] == 3
     else:
         if (random.randint(1, 10) > 9):
-            logging.info("!!!!!!CPD ACTIVE!!!!!!!!")
+            logging.info("CPD ACTIVE")
             return True
         else:
             logging.info("CPD INACTIVE")
@@ -150,7 +161,7 @@ def charging_time():
     logging.info(f"Charging Time {on_time < now} {now < off_time}" )
     return on_time < now and now < off_time
 
-def from_solar():
+def get_solar_generation():
     """return current solar generation
     Keyword arguments: None
     """
@@ -164,7 +175,7 @@ def from_solar():
     logging.info(f"Solar Generation {solar_generation}")
     return solar_generation 
 
-def existing_load():
+def get_existing_load():
     """return current power load
     Keyword arguments: None
     """    
@@ -178,12 +189,37 @@ def existing_load():
     logging.info(f"Power Load {power_load}")
     return power_load
 
+def get_avg_spot_price():
+    """return average spot price
+    Keyword arguments: None
+    """  
+    import pymysql
+    conn = pymysql.connect(
+    db=config.DATABASE,    
+    user=config.USER,
+    passwd=config.PASSWD,
+    host='localhost')
+
+    c = conn.cursor()
+    c.execute("SELECT AVG(SpotPrice) from DataPoint where Timestamp > now() - interval 5 day")
+    row = c.fetchone()
+    if row[0] == None:
+        avg_spot_price = get_spot_price()
+    else:
+        avg_spot_price = row[0]
+    c.close()
+    conn.close()
+
+    logging.info(f"Average Spot Price {avg_spot_price}")
+    return avg_spot_price
+
 #get_spot_price()
+#get_avg_spot_price()
 #battery_low()
 #battery_full()
 #is_CPD()
 #charge_from_grid()
 #discharge_to_grid()
 #charging_time()
-#from_solar()
-#existing_load()
+#get_solar_generation()
+#get_existing_load()
