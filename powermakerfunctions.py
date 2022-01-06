@@ -213,6 +213,27 @@ def get_avg_spot_price():
     logging.info(f"Average Spot Price {avg_spot_price}")
     return avg_spot_price
 
+def get_status():
+    """return current status
+    Keyword arguments: None
+    """  
+    import pymysql
+    conn = pymysql.connect(
+    db=config.DATABASE,    
+    user=config.USER,
+    passwd=config.PASSWD,
+    host='localhost')
+
+    c = conn.cursor()
+    c.execute("SELECT * from DataPoint where RecordID = (SELECT Max(RecordID) from DataPoint)")
+    row = c.fetchone()
+    print(row)
+    c.close()
+    conn.close()
+
+    return row
+
+
 #get_spot_price()
 #get_avg_spot_price()
 #battery_low()
@@ -223,3 +244,4 @@ def get_avg_spot_price():
 #charging_time()
 #get_solar_generation()
 #get_existing_load()
+# get_status()S

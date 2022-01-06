@@ -4,7 +4,7 @@ Install
 
 sudo apt install pip
 
-sudo pip install pymodbus pymysql
+sudo pip install pymodbus pymysql flask
 
 sudo mysql 
 create database pm;
