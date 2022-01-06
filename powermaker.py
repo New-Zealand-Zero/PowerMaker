@@ -51,18 +51,21 @@ while(True):
         elif spot_price<= import_price and not battery_full:
             #import power from grid
             status = "Importing - Spot price low"
-            multiplier = (import_price-spot_price)/import_price
+            multiplier = (import_price-spot_price)/import_price  
             multiplier = max(0, min(multiplier, 1))
             charge_rate = 1000 * 1.73789 * math.exp(2.85588 * multiplier)
             charge_rate = charge_rate*2.5 #winter multiplier
-            charge_from_grid(min(30000, max(1000, int(charge_rate))))
+            charge_from_grid(min(30000, max(1000, int(charge_rate)))) 
 
         elif spot_price>export_price and not battery_low:
             #export power to grid
             status = "Exporting - Spot Price High"
             multiplier = (spot_price - export_price)/export_price
-            multiplier = max(0, min(multiplier, 1))
-            discharge_rate = -1000 * 1.73789 * math.exp(2.85588 * multiplier)
+            # multiplier = max(0, min(multiplier, 1))
+            # discharge_rate = -1000 * 1.73789 * math.exp(2.85588 * multiplier)
+            # multiplier = max(0, min(multiplier, 1))
+            # discharge_rate = -1000 * 1.73789 * math.exp(2.85588 * multiplier)
+            # discharge_to_grid(max(-30000, min(-1000, int(discharge_rate))))
             discharge_to_grid(max(-30000, min(-1000, int(discharge_rate))))
 
         elif battery_low:
@@ -83,7 +86,7 @@ while(True):
 
     #log and save record  
     logging.info(f"Status {status} \n")
-    c.execute(f"INSERT INTO DataPoint (SpotPrice, SolarGeneration , PowerLoad , BatteryCharge , Status) VALUES ({spot_price}, {solar_generation}, {power_load}, {battery_charge}, '{status}')")       
+    c.execute(f"INSERT INTO DataPoint (SpotPrice, AvgSpotPrice, SolarGeneration , PowerLoad , BatteryCharge , Status) VALUES ({spot_price}, {avg_spot_price}, {solar_generation}, {power_load}, {battery_charge}, '{status}')")       
     conn.commit()
 
     sleep(5)
