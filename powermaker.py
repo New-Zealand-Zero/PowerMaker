@@ -83,7 +83,6 @@ while(True):
            
     except Exception as e:
         logging.warning("[Error {0}]".format(e))
-
     #log and save record  
     logging.info(f"Status {status} \n")
     c.execute(f"INSERT INTO DataPoint (SpotPrice, AvgSpotPrice, SolarGeneration , PowerLoad , BatteryCharge , Status) VALUES ({spot_price}, {avg_spot_price}, {solar_generation}, {power_load}, {battery_charge}, '{status}')")       
