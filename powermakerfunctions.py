@@ -59,7 +59,7 @@ def get_spot_price():
             spot_price = float("{0:.5f}".format(random.uniform(0.00001, 0.09)))
             if (spot_price > .08):
                 spot_price = spot_price + float("{0:.5f}".format(random.uniform(100, 500)))
-            logging.info(f"SPOT PRICE ${spot_price}")
+            logging.info(f"spot price ${spot_price}")
             return spot_price
 
     params = urllib.parse.urlencode({
@@ -82,7 +82,7 @@ def get_battery_low():
     """return true if battery is low
      Keyword arguments: None
     """
-    battery_low = get_battery_charge() >= config.CHARGED_BATTERY_THRESHOLD
+    battery_low = get_battery_charge() <= config.LOW_BATTERY_THRESHOLD
     logging.info(f"Battery low:{battery_low}")
     return battery_low
 
@@ -100,9 +100,11 @@ def get_battery_charge():
     """
     if (config.PROD):  
         result = client.read_holding_registers(843)
-        return result.registers[0]
+        battery_charge= result.registers[0]
     else:
-         return float("{0:.1f}".format(random.uniform(0, 100)))
+         battery_charge=  float("{0:.1f}".format(random.uniform(1, 100)))
+
+    return battery_charge
 
 def reset_to_default():
     if (config.PROD):
@@ -148,7 +150,8 @@ def discharge_to_grid(rate_to_discharge=0):
         payload = builder.to_registers()
         client.write_register(2700, payload[0])
 
-    logging.info("Exporting to Grid @ %s KwH, battery: %s percent", rate_to_discharge if rate_to_discharge < 0 else config.DISCHARGE_RATE_KWH, get_battery_charge())
+    # logging.info("Exporting to Grid @ %s KwH, battery: %s percent", rate_to_discharge if rate_to_discharge < 0 else config.DISCHARGE_RATE_KWH, get_battery_charge())
+    logging.info(f"Exporting to Grid @ {rate_to_discharge} KwH, battery: {get_battery_charge()} percent" )
     return
 
 def charging_time():
