@@ -11,6 +11,7 @@ from powermakerfunctions import *
 import logging # flexible event logging
 import math # mathematical functions
 from time import sleep  # To add delay
+from numpy import interp  # To scale values
 
 # Log to file in production on screen for test
 if (config.PROD):
@@ -42,8 +43,10 @@ while(True):
         battery_charge = get_battery_charge()
         battery_full = get_battery_full()
         battery_low = get_battery_low()
+        cdp = is_CPD()
                   
-        if is_CPD():
+        # make decision based on current state
+        if cdp:
             #there is CPD active so immediately go into low export state
             status = "Exporting - CPD active"
             discharge_to_grid(config.CPD_DISCARGE_RATE)
@@ -61,28 +64,24 @@ while(True):
             #export power to grid
             status = "Exporting - Spot Price High"
             multiplier = (spot_price - export_price)/export_price
-            # multiplier = max(0, min(multiplier, 1))
-            # discharge_rate = -1000 * 1.73789 * math.exp(2.85588 * multiplier)
-            # multiplier = max(0, min(multiplier, 1))
-            # discharge_rate = -1000 * 1.73789 * math.exp(2.85588 * multiplier)
-            # discharge_to_grid(max(-30000, min(-1000, int(discharge_rate))))
+            discharge_rate = -1000 * 1.73789 * math.exp(2.85588 * multiplier)
+            multiplier = max(0, min(multiplier, 1))
+            discharge_rate = -1000 * 1.73789 * math.exp(2.85588 * multiplier)
             discharge_to_grid(max(-30000, min(-1000, int(discharge_rate))))
 
-        elif battery_low:
-            status = "No I/E - Battery Low"
+        else: 
+            #Stop any Importing or Exporting activity  
             reset_to_default() 
-        
-        elif battery_full:
-            status = "No I/E - Battery Full"
-            reset_to_default() #export power to grid ????
-               
-        else:
-            status = "No I/E - Battery OK"
-            logging.info("BATTERY OK: battery @ %s percent", battery_charge)
-            reset_to_default()
+            if battery_low:
+                status = f"No I/E - Battery Low @ {battery_charge} percent"
+            elif battery_full:
+                status = "No I/E - Battery Full"
+            else:
+                status = "No I/E - Battery OK @ {battery_charge} percent"
            
     except Exception as e:
         logging.warning("[Error {0}]".format(e))
+    
     #log and save record  
     logging.info(f"Status {status} \n")
     c.execute(f"INSERT INTO DataPoint (SpotPrice, AvgSpotPrice, SolarGeneration , PowerLoad , BatteryCharge , Status) VALUES ({spot_price}, {avg_spot_price}, {solar_generation}, {power_load}, {battery_charge}, '{status}')")       
