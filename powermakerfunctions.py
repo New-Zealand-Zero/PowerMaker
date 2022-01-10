@@ -10,7 +10,6 @@
     charge_from_grid()
     discharge_to_grid()
     charging_time()
-
 """
 
 # Importing configeration
@@ -77,6 +76,7 @@ def get_spot_price():
     spot_price = json_data[0]['DollarsPerMegawattHour']/1000 
     logging.info(f"SPOT PRICE:${spot_price}")
     conn.close()
+    return spot_price
 
 def get_battery_low():
     """return true if battery is low

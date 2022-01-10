@@ -11,31 +11,14 @@ from powermakerfunctions import *
 import logging # flexible event logging
 import math # mathematical functions
 from time import sleep  # To add delay
-import numpy as np 
+import numpy as np
 
-# Log to file in production on screen for test
-if (config.PROD):
-    logging.basicConfig(filename='io.log', level=logging.INFO, format='%(asctime)s %(message)s')
-else:
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s TEST %(message)s') 
-
-# Connect to the database.
-import pymysql
-conn = pymysql.connect(
-    db=config.DATABASE,    
-    user=config.USER,
-    passwd=config.PASSWD,
-    host='localhost')
-c = conn.cursor()
-
-min_exp_value = 0
-max_exp_value = 7
 avg_spot_price= 100
 
 print()
-print("min_exp_value=", np.exp(min_exp_value), " ", "max_exp_value=", np.exp(max_exp_value))
+print("min_exp_value=", np.exp(config.MIN_EXP_VALUE), " ", "max_exp_value=", np.exp(config.MAX_EXP_VALUE))
 
-multiplier = config.IE_MAX_RATE/np.exp(max_exp_value) 
+multiplier = (config.IE_MAX_RATE-config.IE_MIN_RATE)/np.exp(config.MAX_EXP_VALUE) 
 print("multiplier=", multiplier)
 print()
 
@@ -47,7 +30,7 @@ def calc_discharge_rate(spot_price):
 
     scaled_margin = np.interp(margin, [config.MARGIN_MIN , config.MARGIN_MAX],[config.MIN_EXP_VALUE, config.MAX_EXP_VALUE])
     
-    scaled_margin_exp = np.exp(scaled_margin)
+    scaled_margin_exp = np.exp(scaled_margin) - np.exp(config.MIN_EXP_VALUE)
     print("scaled_margin=", scaled_margin," ", "scaled_margin_exp=",scaled_margin_exp)
   
     discharge_rate = config.IE_MIN_RATE + (scaled_margin_exp*multiplier)
