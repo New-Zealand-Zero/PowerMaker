@@ -102,7 +102,7 @@ def get_battery_charge():
         result = client.read_holding_registers(843)
         battery_charge= result.registers[0]
     else:
-         battery_charge=  float("{0:.1f}".format(random.uniform(1, 100)))
+         battery_charge=  float("{0:.3f}".format(random.uniform(0.1, 1)))
 
     return battery_charge
 
@@ -134,8 +134,8 @@ def charge_from_grid(rate_to_charge=0):
 
     if (config.PROD):
         client.write_register(2700, int(rate_to_charge if rate_to_charge > 0 else config.CHARGE_RATE_KWH))
-
-    logging.info("Importing from Grid @ %s KwH, battery: %s percent", rate_to_charge if rate_to_charge > 0 else config.CHARGE_RATE_KWH, get_battery_charge())
+   
+    logging.info(f"Importing to Grid @ {rate_to_charge} KwH, battery: {get_battery_charge():.1%}" )
     return
   
 
@@ -151,7 +151,7 @@ def discharge_to_grid(rate_to_discharge=0):
         client.write_register(2700, payload[0])
 
     # logging.info("Exporting to Grid @ %s KwH, battery: %s percent", rate_to_discharge if rate_to_discharge < 0 else config.DISCHARGE_RATE_KWH, get_battery_charge())
-    logging.info(f"Exporting to Grid @ {rate_to_discharge} KwH, battery: {get_battery_charge()} percent" )
+    logging.info(f"Exporting to Grid @ {rate_to_discharge} KwH, battery: {get_battery_charge():.1%}" )
     return
 
 def charging_time():
@@ -242,6 +242,7 @@ def get_status():
 #battery_low()
 #battery_full()
 #is_CPD()
+# print(get_battery_charge())
 #charge_from_grid()
 #discharge_to_grid()
 #charging_time()

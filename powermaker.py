@@ -73,11 +73,11 @@ while(True):
             #Stop any Importing or Exporting activity  
             reset_to_default() 
             if battery_low:
-                status = f"No I/E - Battery Low @ {battery_charge} percent"
+                status = f"No I/E - Battery Low @ {battery_charge:.1%}"
             elif battery_full:
-                status = "No I/E - Battery Full"
+                status = f"No I/E - Battery Ful @ {battery_charge:.1%}"
             else:
-                status = "No I/E - Battery OK @ {battery_charge} percent"
+                status = f"No I/E - Battery OK @ {battery_charge:.1%}"
            
     except Exception as e:
         logging.warning("[Error {0}]".format(e))
