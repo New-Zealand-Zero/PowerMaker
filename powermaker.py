@@ -28,8 +28,8 @@ conn = pymysql.connect(
     host='localhost')
 c = conn.cursor()
 
-time_to_charge=False
-chargeing_phase = True
+# time_to_charge=False   ??? Do we need this
+# chargeing_phase = True  ??? Do we need this
 while(True):
 
     try:
@@ -49,7 +49,7 @@ while(True):
         if cdp:
             #there is CPD active so immediately go into low export state
             status = "Exporting - CPD active"
-            discharge_to_grid(config.CPD_DISCARGE_RATE)
+            discharge_to_grid(config.CPD_DISCHARGE_RATE) # ??should we make the min?
      
         elif spot_price<= import_price and not battery_full:
             #import power from grid
