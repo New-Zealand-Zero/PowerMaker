@@ -27,6 +27,9 @@ from pymodbus.constants import Endian
 from pymodbus.client.sync import ModbusTcpClient as ModbusClient
 from pymodbus.payload import BinaryPayloadDecoder
 from pymodbus.payload import BinaryPayloadBuilder, Endian, BinaryPayloadDecoder
+import numpy as np
+import matplotlib.pyplot as plt
+import pymysql
 
 # Log to file in production on screen for test
 if (config.PROD):
@@ -34,68 +37,46 @@ if (config.PROD):
 else:
     logging.basicConfig(level=logging.INFO, format='%(asctime)s TEST %(message)s') 
 
-# Connect to the database.
-import pymysql
-conn = pymysql.connect(
-    db=config.DATABASE,    
-    user=config.USER,
-    passwd=config.PASSWD,
-    host='localhost')
-c = conn.cursor()
-
-Defaults.Timeout = 25
-Defaults.Retries = 5
-client = ModbusClient(config.MODBUS_CLIENT_IP, port='502', auto_open=True, auto_close=True)
-
 def get_spot_price():
     """return the latest power spotprice from OCP
      Keyword arguments: None
     """
-    now = datetime.now().strftime("%Y-%m-%d %H:%M")
+    if (config.PROD):
+        now = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M")
+        Defaults.Timeout = 25
+        Defaults.Retries = 5
+        client = ModbusClient(config.MODBUS_CLIENT_IP, port='502', auto_open=True, auto_close=True)
+        params = urllib.parse.urlencode({
+                '$filter': 'PointOfConnectionCode eq \'CML0331\'',
+                '&filter': 'TradingDate eq datetime'+now+''
+        })
+        request_headers = {
+        'Ocp-Apim-Subscription-Key': config.OCP_APIM_SUBSCRIPTION_KEY
+        }
+        conn = http.client.HTTPSConnection('emi.azure-api.net')
+        conn.request("GET", "/real-time-prices/?%s" % params, "{body}", request_headers)
+        response = conn.getresponse()
+        data = response.read()
+        json_data = json.loads(data.decode('utf-8'))
+        spot_price = json_data[0]['DollarsPerMegawattHour']/1000 
+    else:
+        #generate test data
+        conn = create_db_connection()       
+        c = conn.cursor()
+        c.execute("SELECT SpotPrice from DataPoint where RecordID = (SELECT Max(RecordID) from DataPoint)")
+        row = c.fetchone()
+        c.close()
+        conn.close()
+  
+        spot_price = row[0] + float("{0:.5f}".format(random.uniform(-0.10001, 0.10001)))
+        if spot_price < 0:
+            spot_price *= -1
 
-    #if generate testing data if not in Production
-    if (not config.PROD):
-            spot_price = float("{0:.5f}".format(random.uniform(0.00001, 0.09)))
-            if (spot_price > .08):
-                spot_price = spot_price + float("{0:.5f}".format(random.uniform(100, 500)))
-            logging.info(f"spot price ${spot_price}")
-            return spot_price
-
-    params = urllib.parse.urlencode({
-            '$filter': 'PointOfConnectionCode eq \'CML0331\'',
-            '&filter': 'TradingDate eq datetime'+now+''
-    })
-    request_headers = {
-    'Ocp-Apim-Subscription-Key': config.OCP_APIM_SUBSCRIPTION_KEY
-    }
-    conn = http.client.HTTPSConnection('emi.azure-api.net')
-    conn.request("GET", "/real-time-prices/?%s" % params, "{body}", request_headers)
-    response = conn.getresponse()
-    data = response.read()
-    json_data = json.loads(data.decode('utf-8'))
-    spot_price = json_data[0]['DollarsPerMegawattHour']/1000 
-    logging.info(f"SPOT PRICE:${spot_price}")
-    conn.close()
+    logging.info(f"Spot price ${spot_price}")
     return spot_price
 
-def get_battery_low():
-    """return true if battery is low
-     Keyword arguments: None
-    """
-    battery_low = get_battery_charge() <= config.LOW_BATTERY_THRESHOLD
-    logging.info(f"Battery low:{battery_low}")
-    return battery_low
-
-def get_battery_full():
-    """return true if battery is full
-     Keyword arguments: None
-    """
-    battery_full = get_battery_charge() >= config.CHARGED_BATTERY_THRESHOLD
-    logging.info(f"Battery full:{battery_full}")
-    return battery_full
-
-def get_battery_charge():
-    """return the battery charge
+def get_battery_status():
+    """return the battery charge and status
      Keyword arguments: None
     """
     if (config.PROD):  
@@ -104,11 +85,15 @@ def get_battery_charge():
     else:
          battery_charge=  float("{0:.3f}".format(random.uniform(0.1, 1)))
 
-    return battery_charge
+    battery_low = battery_charge <= config.LOW_BATTERY_THRESHOLD
+    battery_full = battery_charge >= config.CHARGED_BATTERY_THRESHOLD
+
+    logging.info(f"Battery: {battery_charge:.1%}" )
+    return battery_charge, battery_low, battery_full
 
 def reset_to_default():
     if (config.PROD):
-        client.write_register(2700,int(0))
+        client.write_register(2703,int(0))
 
 def is_CPD():
     """check if CONTROL PERIOD STATUS is active - a period of peak loading on distribution network.
@@ -127,42 +112,32 @@ def is_CPD():
             logging.info("CPD INACTIVE")
             return False
 
-def charge_from_grid(rate_to_charge=0):
+def charge_from_grid(rate_to_charge):
     """ import power from grid
     Keyword arguments: rate to charge
     """
 
     if (config.PROD):
-        client.write_register(2700, int(rate_to_charge if rate_to_charge > 0 else config.CHARGE_RATE_KWH))
+        client.write_register(2703, int(rate_to_charge if rate_to_charge > 0 else config.CHARGE_RATE_KWH))
    
     logging.info(f"Importing to Grid @ {rate_to_charge} KwH, battery: {get_battery_charge():.1%}" )
     return
   
 
-def discharge_to_grid(rate_to_discharge=0):
+def discharge_to_grid(rate_to_discharge):
     """ export power to grid
     Keyword arguments: rate to discharge
     """
     if (config.PROD):
+        rate_to_discharge=rate_to_discharge*0.01
         builder = BinaryPayloadBuilder(byteorder=Endian.Big, wordorder=Endian.Big)
         builder.reset()
         builder.add_16bit_int(rate_to_discharge if rate_to_discharge < 0 else config.DISCHARGE_RATE_KWH)
         payload = builder.to_registers()
-        client.write_register(2700, payload[0])
-
-    # logging.info("Exporting to Grid @ %s KwH, battery: %s percent", rate_to_discharge if rate_to_discharge < 0 else config.DISCHARGE_RATE_KWH, get_battery_charge())
-    logging.info(f"Exporting to Grid @ {rate_to_discharge} KwH, battery: {get_battery_charge():.1%}" )
+        client.write_register(2703, payload[0])
+  
+    logging.info(f"Exporting to Grid @ {rate_to_discharge} KwH" )
     return
-
-def charging_time():
-    """ calculate time required to charge
-    Keyword arguments: None
-    """
-    now = datetime.now().time()
-    on_time = time(0,5)
-    off_time = time(3,5)
-    logging.info(f"Charging Time {on_time < now} {now < off_time}" )
-    return on_time < now and now < off_time
 
 def get_solar_generation():
     """return current solar generation
@@ -191,42 +166,53 @@ def get_existing_load():
 
     logging.info(f"Power Load {power_load}")
     return power_load
+    
+def get_actual_IE():
+    """return current power load
+    Keyword arguments: None
+    """    
+    if (config.PROD):    
+        power_load = client.read_holding_registers(2600).registers[0]
+        power_load += client.read_holding_registers(2601).registers[0]
+        power_load += client.read_holding_registers(2602).registers[0]
+    else:
+        power_load= random.randint(-config.IE_MAX_RATE, config.IE_MAX_RATE)
 
-def get_avg_spot_price():
+    logging.info(f"Actual IE {power_load}")
+    return power_load
+
+def get_spot_price_stats():
     """return average spot price
     Keyword arguments: None
     """  
-    import pymysql
-    conn = pymysql.connect(
-    db=config.DATABASE,    
-    user=config.USER,
-    passwd=config.PASSWD,
-    host='localhost')
-
+    conn = create_db_connection()
     c = conn.cursor()
-    c.execute("SELECT AVG(SpotPrice) from DataPoint where Timestamp > now() - interval 5 day")
-    row = c.fetchone()
-    if row[0] == None:
-        avg_spot_price = get_spot_price()
-    else:
-        avg_spot_price = row[0]
+    c.execute("SELECT SpotPrice from DataPoint where Timestamp > now() - interval 5 day")
+    result = c.fetchall()
     c.close()
     conn.close()
 
-    logging.info(f"Average Spot Price {avg_spot_price}")
-    return avg_spot_price
+    spot_prices = []
+
+    x=0
+    for i in result:
+        x += 1
+        spot_prices.append(i[0])
+
+    spot_price_avg=np.average(spot_prices)
+    spot_price_min=np.min(spot_prices)
+    spot_price_max=np.max(spot_prices)
+    spot_price_lq=np.quantile(spot_prices,0.25)
+    spot_price_uq=np.quantile(spot_prices,0.75)
+    
+    logging.info(f"Average Spot Price {spot_price_avg}")
+    return spot_price_avg, spot_price_min, spot_price_max, spot_price_lq, spot_price_uq
 
 def get_status():
     """return current status
     Keyword arguments: None
-    """  
-    import pymysql
-    conn = pymysql.connect(
-    db=config.DATABASE,    
-    user=config.USER,
-    passwd=config.PASSWD,
-    host='localhost')
-
+    """      
+    conn = create_db_connection()
     c = conn.cursor()
     c.execute("SELECT * from DataPoint where RecordID = (SELECT Max(RecordID) from DataPoint)")
     row = c.fetchone()
@@ -236,11 +222,74 @@ def get_status():
 
     return row
 
+def calc_discharge_rate(spot_price,avg_spot_price):
 
-#get_spot_price()
+    margin = spot_price - avg_spot_price
+    print(f"margin= ${margin:.4f}")
+
+    #linear scale margin to exp input value
+    scaled_margin = np.interp(margin, [config.EXPORT_MARGIN_MIN , config.EXPORT_MARGIN_MAX],[config.EXP_INPUT_MIN , config.EXP_INPUT_MAX ])
+    
+    #Apply the exp function to exp_value less the min
+    scaled_margin_exp = np.exp(scaled_margin) - np.exp(config.EXP_INPUT_MIN)
+    
+    #Calc the value to scale the max exp value to the max discharge rate
+    multiplier = (config.IE_MAX_RATE-config.IE_MIN_RATE)/np.exp(config.EXP_INPUT_MAX) 
+
+    #linear scale the exp function applied value to discharge rate 
+    discharge_rate = int(config.IE_MIN_RATE + (scaled_margin_exp*multiplier))
+    print(f"discharge_rate={discharge_rate}")
+    return discharge_rate
+
+def update_graphs():
+
+    conn = create_db_connection()
+    c = conn.cursor()
+    c.execute("SELECT spotprice, actualIE from DataPoint where timestamp >= DATE_SUB(NOW(),INTERVAL 4 HOUR)")
+    result = c.fetchall()
+    c.close()  
+    conn.close()
+
+    points = []
+    spot_prices = []
+    actual_IE = []
+
+    x=0
+    for i in result:
+        x += 1
+        points.append(x)
+        spot_prices.append(i[0])
+        actual_IE.append(i[1])
+
+    plt.plot(points, spot_prices)
+    plt.xlabel('Record')
+    plt.ylabel('Spot Price')
+    plt.title('Last 4 Hours Spot Price')
+    plt.savefig('static/spotprice.png')
+  
+    plt.plot(points, actual_IE )
+    plt.xlabel('Record')
+    plt.ylabel('Actual IE')
+    plt.title('Last 4 Hours Actual IE')
+    plt.savefig('static/actualIE.png')
+    plt.close()
+
+def create_db_connection():
+    conn: None
+    try:
+        conn = pymysql.connect(
+        db=config.DATABASE,    
+        user=config.USER,
+        passwd=config.PASSWD,
+        host='localhost')
+    except logging.error as err:
+        print(f"Error: '{err}'")
+
+    return conn
+    
+# get_spot_price()
 #get_avg_spot_price()
-#battery_low()
-#battery_full()
+# print(get_battery_status())
 #is_CPD()
 # print(get_battery_charge())
 #charge_from_grid()
@@ -248,4 +297,6 @@ def get_status():
 #charging_time()
 #get_solar_generation()
 #get_existing_load()
-# get_status()S
+# get_status()
+#calc_discharge_rate(1.5,1)
+# update_graphs()

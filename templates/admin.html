@@ -28,54 +28,49 @@
 
         <div class="row mx-5 mt-4 mb-2">
             <div class="col border">
-                <p class="text-center my-auto justify-content-cente"> <b> Status</b> <br> {{status_desc}}  </p>
-            </div>
-        </div>
-
-        <div class="row mx-5 mb-2">
-            <div class="col border">
-                <p class="text-center my-auto justify-content-cente"> <b> Actual IE </b> <br> {{actual_IE}} </p>
+                <p class="text-center my-auto justify-content-cente"> {{status_desc}} </p>
             </div>
         </div>
 
         <div class="row mx-5 mb-2 {{spot_price_color}}">
             <div class="col border">
-                <p class="text-center my-auto justify-content-cente"> <b> Spot Price Current </b> ${{spot_price_str}}</p>
+                <p class="text-center my-auto justify-content-cente"> Spot Price Current ${{spot_price_str}}</p>
             </div>
         </div>
 
         <div class="row mx-5 mb-2">
             <div class="col border ">
-                <p class="text-center my-auto justify-content-cente"> <b> Spot Price Avg</b>  ${{avg_spot_price_str}}</p>
+                <p class="text-center my-auto justify-content-cente"> Spot Price Avg ${{avg_spot_price_str}}</p>
             </div>
         </div>
 
         <div class="row mx-5 mb-2 {{solar_generation_color}}">
             <div class="col border">
-                <p class="text-center my-auto justify-content-cente "> <b> Solar Generation </b>  <br> {{solar_generation}} wH</p>
+                <p class="text-center my-auto justify-content-cente "> Solar Generation <br> {{solar_generation}} wH</p>
             </div>
         </div>
 
         <div class="row mx-5 mb-2">
             <div class="col border">
-                <p class="text-center my-auto justify-content-cente"> <b> Power Load </b>  <br> {{power_load}} wH</p>
+                <p class="text-center my-auto justify-content-cente"> Power Load <br> {{power_load}} wH</p>
             </div>
         </div>
 
         <div class="row mx-5 mb-2">
             <div class="col border">
-                <p class="text-center my-auto justify-content-cente"> <b> Battery Charge </b>  <br> {{battery_charge}} </p>
+                <p class="text-center my-auto justify-content-cente"> Battery Charge <br> {{battery_charge}} </p>
             </div>
         </div>
-
     </div>
 
     <div class="border border-3 rounded mx-auto my-3 box">
-        <img src="static/spotprice.png" alt="">
-    </div>
+        <div class="col text-center">
+            <form action="process.php" method="POST">
+                <input type="submit" name="cool1" class="btn cold mt-4 mb-2" value="Export to Grid"> <br>
+                <input type="submit" name="heat2" class="btn hot mb-2" value="Import from Grid"> <br>
+                <input type="submit" name="heat2" class="btn btn-primary mb-2" value="Automatic I/E"> <br>
+        </div>
 
-    <div class="border border-3 rounded mx-auto my-3 box">
-        <img src="static/actualIE.png" alt="">
     </div>
 
 </body>

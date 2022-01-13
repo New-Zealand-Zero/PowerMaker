@@ -1,4 +1,4 @@
-#env constants
+#env
 PROD = False
 OCP_APIM_SUBSCRIPTION_KEY = "xxxxxxxxxxxxxxxxxxxxxxxxxxx"
 LOW_BATTERY_THRESHOLD=25
@@ -11,12 +11,12 @@ MINIMUM_DISCHARGE_PRICE=0.35
 LOW_BATTERY_THRESHOLD=25
 CHARGED_BATTERY_THRESHOLD=75
 MODBUS_CLIENT_IP = "192.168.1.xxx"
-#Database connection constants
+#Database connection
 DATABASE = "pm"
 USER = "pm"
 HOST= "localhost"
 PASSWD = "pm"
-#Spot price constants
+#Spot price
 SPOT_PRICE_IE_SPREAD = 0.40 # spread between import and exporting compared to 5 days average
 MARGIN_MIN = 10             # At this price point about the avg spot price I/E at the min I/E rate
 MARGIN_MAX = 40             # At this price point about the avg spot price I/E at the min I/E rate

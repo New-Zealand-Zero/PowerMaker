@@ -17,4 +17,11 @@ cd PowerMaker
 cp exampleconfig.py config.py
 update config
 
+ToDo
+Import at 1 SD below 2SD all install
+
+Graphs to web
+Web app page to import and export
+Instructions
+
 

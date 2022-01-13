@@ -11,12 +11,12 @@ from powermakerfunctions import *
 from flask import Flask, render_template
 
 app = Flask(__name__)
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 
 @app.route('/')
 def index():
     status = get_status()
-    # 1, 2, SolarGeneration int, PowerLoad int, BatteryCharge Float, Status varchar(30), Timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (RecordID)
-
+    
     spot_price = float(status[1])   
     avg_spot_price = float(status[2])
 
@@ -40,7 +40,10 @@ def index():
         solar_generation_color = "lightred"
 
     battery_charge = "{:.1%}".format(status[5]) 
-    status_desc = status[6]  
+    status_desc = status[6]
+    actual_IE = status[7]
+
+    update_graphs()
         
     return render_template('index.html', **locals())
 
