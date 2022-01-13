@@ -12,6 +12,7 @@ import logging # flexible event logging
 import math # mathematical functions
 from time import sleep  # To add delay
 from numpy import interp  # To scale values
+import pymysql
 
 # Log to file in production on screen for test
 if (config.PROD):
@@ -19,37 +20,27 @@ if (config.PROD):
 else:
     logging.basicConfig(level=logging.INFO, format='%(asctime)s TEST %(message)s') 
 
-# Connect to the database.
-import pymysql
-conn = pymysql.connect(
-    db=config.DATABASE,    
-    user=config.USER,
-    passwd=config.PASSWD,
-    host='localhost')
+conn = create_db_connection()
 c = conn.cursor()
 
-# time_to_charge=False   ??? Do we need this
-# chargeing_phase = True  ??? Do we need this
 while(True):
-
     try:
         #get current state
         spot_price = get_spot_price()
-        avg_spot_price = get_avg_spot_price()
-        export_price = avg_spot_price + (0.5 * config.SPOT_PRICE_IE_SPREAD)
-        import_price = avg_spot_price - (0.5 * config.SPOT_PRICE_IE_SPREAD)
+        spot_price_avg, spot_price_min, spot_price_max, spot_price_lq, spot_price_uq = get_spot_price_stats()
+        import_price = spot_price_lq
+        export_price = spot_price_uq
         solar_generation = get_solar_generation()
         power_load = get_existing_load()
-        battery_charge = get_battery_charge()
-        battery_full = get_battery_full()
-        battery_low = get_battery_low()
         cdp = is_CPD()
+        actual_IE = get_actual_IE()
+        battery_charge, battery_low, battery_full = get_battery_status()
                   
         # make decision based on current state
         if cdp:
             #there is CPD active so immediately go into low export state
             status = "Exporting - CPD active"
-            discharge_to_grid(config.CPD_DISCHARGE_RATE) # ??should we make the min?
+            discharge_to_grid(config.CPD_DISCHARGE_RATE)
      
         elif spot_price<= import_price and not battery_full:
             #import power from grid
@@ -62,12 +53,9 @@ while(True):
 
         elif spot_price>export_price and not battery_low:
             #export power to grid
-            status = "Exporting - Spot Price High"
-            multiplier = (spot_price - export_price)/export_price
-            discharge_rate = -1000 * 1.73789 * math.exp(2.85588 * multiplier)
-            multiplier = max(0, min(multiplier, 1))
-            discharge_rate = -1000 * 1.73789 * math.exp(2.85588 * multiplier)
-            discharge_to_grid(max(-30000, min(-1000, int(discharge_rate))))
+            discharge_rate = calc_discharge_rate(spot_price,spot_price_avg)
+            discharge_to_grid(discharge_rate)
+            status = f"Exporting @ {discharge_rate}- Spot Price High"
 
         else: 
             #Stop any Importing or Exporting activity  
@@ -83,8 +71,7 @@ while(True):
         logging.warning("[Error {0}]".format(e))
     
     #log and save record  
-    logging.info(f"Status {status} \n")
-    c.execute(f"INSERT INTO DataPoint (SpotPrice, AvgSpotPrice, SolarGeneration , PowerLoad , BatteryCharge , Status) VALUES ({spot_price}, {avg_spot_price}, {solar_generation}, {power_load}, {battery_charge}, '{status}')")       
+    c.execute(f"INSERT INTO DataPoint (SpotPrice, AvgSpotPrice, SolarGeneration , PowerLoad , BatteryCharge , Status, ActualIE) VALUES ({spot_price}, {spot_price_avg}, {solar_generation}, {power_load}, {battery_charge}, '{status}', {actual_IE})")       
     conn.commit()
 
-    sleep(5)
+    sleep(1)
