@@ -4,7 +4,7 @@ import config
 import pymysql
 from powermakerfunctions import create_db_connection
 
-# Connect to the database.
+# Connect to the database
 conn = create_db_connection()   
 c = conn.cursor()
 
