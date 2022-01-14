@@ -48,3 +48,7 @@ a {
 img{
     width: 290px
 }
+.form-control{
+    text-align: center;
+    width:199px
+}

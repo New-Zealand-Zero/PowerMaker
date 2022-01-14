@@ -21,7 +21,7 @@
 <body>
 
     <div class="border rounded mx-auto my-2 box ">
-        <h1 class="text-center my-3"><a href="/">PowerMaker</a></h1>
+        <h1 class="text-center my-3"><a href="/">PowerMaker <br> ADMIN</a></h1>
     </div>
 
     <div class="border border-3 rounded mx-auto my-2 box">
@@ -31,44 +31,17 @@
                 <p class="text-center my-auto justify-content-cente"> {{status_desc}} </p>
             </div>
         </div>
-
-        <div class="row mx-5 mb-2 {{spot_price_color}}">
-            <div class="col border">
-                <p class="text-center my-auto justify-content-cente"> Spot Price Current ${{spot_price_str}}</p>
-            </div>
-        </div>
-
-        <div class="row mx-5 mb-2">
-            <div class="col border ">
-                <p class="text-center my-auto justify-content-cente"> Spot Price Avg ${{avg_spot_price_str}}</p>
-            </div>
-        </div>
-
-        <div class="row mx-5 mb-2 {{solar_generation_color}}">
-            <div class="col border">
-                <p class="text-center my-auto justify-content-cente "> Solar Generation <br> {{solar_generation}} wH</p>
-            </div>
-        </div>
-
-        <div class="row mx-5 mb-2">
-            <div class="col border">
-                <p class="text-center my-auto justify-content-cente"> Power Load <br> {{power_load}} wH</p>
-            </div>
-        </div>
-
-        <div class="row mx-5 mb-2">
-            <div class="col border">
-                <p class="text-center my-auto justify-content-cente"> Battery Charge <br> {{battery_charge}} </p>
-            </div>
-        </div>
     </div>
+       
 
     <div class="border border-3 rounded mx-auto my-3 box">
         <div class="col text-center">
-            <form action="process.php" method="POST">
-                <input type="submit" name="cool1" class="btn cold mt-4 mb-2" value="Export to Grid"> <br>
-                <input type="submit" name="heat2" class="btn hot mb-2" value="Import from Grid"> <br>
-                <input type="submit" name="heat2" class="btn btn-primary mb-2" value="Automatic I/E"> <br>
+            <form action="/override" method="POST">
+                <label for="rate" class="form-label mt-4 mb-2 mx-2">Enter I/E rate <br> +ve import | -ve export <br> 0 stop I/E</label>
+                <input type="text" class="form-control my-2 ms-5" id="rate" name = "rate" placeholder="Enter rate ">
+                <input type="submit" name="button" class="btn hot mb-2" value="Apply Manual I/E rate"> <br>
+                <input type="submit" name="button" class="btn btn-primary mb-2" value="Automatic I/E"> <br>
+            </form>
         </div>
 
     </div>

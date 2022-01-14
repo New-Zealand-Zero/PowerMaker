@@ -13,6 +13,7 @@
 """
 
 # Importing configeration
+from re import S
 import config
 
 # Importing modules
@@ -120,10 +121,9 @@ def charge_from_grid(rate_to_charge):
     if (config.PROD):
         client.write_register(2703, int(rate_to_charge if rate_to_charge > 0 else config.CHARGE_RATE_KWH))
    
-    logging.info(f"Importing to Grid @ {rate_to_charge} KwH, battery: {get_battery_charge():.1%}" )
+    logging.info(f"Importing from Grid @ {rate_to_charge} KwH" )
     return
   
-
 def discharge_to_grid(rate_to_discharge):
     """ export power to grid
     Keyword arguments: rate to discharge
@@ -202,8 +202,8 @@ def get_spot_price_stats():
     spot_price_avg=np.average(spot_prices)
     spot_price_min=np.min(spot_prices)
     spot_price_max=np.max(spot_prices)
-    spot_price_lq=np.quantile(spot_prices,0.25)
-    spot_price_uq=np.quantile(spot_prices,0.75)
+    spot_price_lq=np.quantile(spot_prices,config.IMPORT_QUANTILE)
+    spot_price_uq=np.quantile(spot_prices,config.EXPORT_QUANTILE)
     
     logging.info(f"Average Spot Price {spot_price_avg}")
     return spot_price_avg, spot_price_min, spot_price_max, spot_price_lq, spot_price_uq
@@ -222,23 +222,63 @@ def get_status():
 
     return row
 
-def calc_discharge_rate(spot_price,avg_spot_price):
+def get_override():
+    """return if manual overide state
+    Keyword arguments: None
+    """      
+    conn = create_db_connection()
+    c = conn.cursor()
+    c.execute("SELECT ConfigValue from Config where ConfigID = 'Override'")
+    row = c.fetchone()
+    c.close()
+    conn.close()
 
-    margin = spot_price - avg_spot_price
-    print(f"margin= ${margin:.4f}")
+    if (row[0] == "N"):
+        return False, None
+    else:
+        return True, int(row[0])
 
-    #linear scale margin to exp input value
-    scaled_margin = np.interp(margin, [config.EXPORT_MARGIN_MIN , config.EXPORT_MARGIN_MAX],[config.EXP_INPUT_MIN , config.EXP_INPUT_MAX ])
-    
+def update_override(overide, rate):
+    conn = create_db_connection()
+    c = conn.cursor()
+    if (overide):
+        c.execute(f"UPDATE Config SET ConfigValue = {rate} where ConfigID = 'Override'")
+    else:
+        c.execute(f"UPDATE Config SET ConfigValue = 'N' where ConfigID = 'Override'")
+    conn.commit()
+    c.close()
+    conn.close()
+
+def calc_discharge_rate(spot_price,export_price,spot_price_max):
+
+    #linear scale spot price to exp input value
+    scaled_price= np.interp(spot_price, [export_price , spot_price_max],[config.EXP_INPUT_MIN , config.EXP_INPUT_MAX ])
+
     #Apply the exp function to exp_value less the min
-    scaled_margin_exp = np.exp(scaled_margin) - np.exp(config.EXP_INPUT_MIN)
-    
+    scaled_margin_exp = np.exp(scaled_price) - np.exp(config.EXP_INPUT_MIN)
+
+    #Calc the value to scale the max exp value to the max discharge rate
+    multiplier = (config.IE_MAX_RATE-config.IE_MIN_RATE)/np.exp(config.EXP_INPUT_MAX) 
+
+    #linear scale the exp function applied value to discharge rate 
+    discharge_rate = - int(config.IE_MIN_RATE + (scaled_margin_exp*multiplier))
+
+    return discharge_rate
+
+def calc_charge_rate(spot_price,import_price,spot_price_min):
+
+    #linear scale spot price to exp input value
+    scaled_price= np.interp(spot_price, [spot_price_min , import_price , ],[config.EXP_INPUT_MAX, config.EXP_INPUT_MIN  ])
+
+    #Apply the exp function to exp_value less the min
+    scaled_margin_exp = np.exp(scaled_price) - np.exp(config.EXP_INPUT_MIN)
+
     #Calc the value to scale the max exp value to the max discharge rate
     multiplier = (config.IE_MAX_RATE-config.IE_MIN_RATE)/np.exp(config.EXP_INPUT_MAX) 
 
     #linear scale the exp function applied value to discharge rate 
     discharge_rate = int(config.IE_MIN_RATE + (scaled_margin_exp*multiplier))
-    print(f"discharge_rate={discharge_rate}")
+
     return discharge_rate
 
 def update_graphs():
@@ -286,7 +326,8 @@ def create_db_connection():
         print(f"Error: '{err}'")
 
     return conn
-    
+# update_override(False, None)
+# print(get_override())
 # get_spot_price()
 #get_avg_spot_price()
 # print(get_battery_status())
@@ -298,5 +339,5 @@ def create_db_connection():
 #get_solar_generation()
 #get_existing_load()
 # get_status()
-#calc_discharge_rate(1.5,1)
+# print(calc_charge_rate(1,1,0))
 # update_graphs()
