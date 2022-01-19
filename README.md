@@ -1,6 +1,8 @@
 # PowerMaker
 
-Power maker runs on Linux, Windows and Mac OS.  The following installation instructions have been tested on Ubuntu 20.04 and will need to be modified for other OS.
+An open-source Intelligent Web Application manages solar-generated energy for the home or business and optimises buying and selling decisions onto the spot market.  
+
+Developed in Python, Flask, Bootstrap 5 and MySQL.  PowerMaker runs on Linux, Windows and Mac OS.  The following installation instructions have been tested on Ubuntu 20.04 and will need to be modified for other OS.
 
 sudo apt update
 sudo apt upgrade -y
