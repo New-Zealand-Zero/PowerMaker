@@ -1,0 +1,54 @@
+.rounded {
+    border-radius: 2rem !important;
+}
+
+.box {
+    width: 300px;
+}
+
+p,
+h1,
+.btn {
+    font-family: 'Orbitron', sans-serif;
+}
+
+.btn {
+    font-family: 'Concert One', cursive;
+    width: 200px;
+}
+
+.warm {
+    background-color: lightsalmon;
+}
+
+.hot {
+    background-color: red;
+}
+
+.cool {
+    background-color: lavender;
+}
+
+.cold {
+    background-color: lightblue;
+}
+
+.lightgreen {
+    background-color: lightgreen;
+}
+
+.lightred {
+    background-color: lightred;
+}
+
+a {
+    text-decoration: none;
+    font-size: 27;
+}
+img{
+    width: 290px
+}
+.form-control{
+    text-align: center;
+    width:199px
+}
