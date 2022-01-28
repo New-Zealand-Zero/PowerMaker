@@ -33,3 +33,34 @@ Run the following script to start the web server
 ./webapp.py
 
 
+To host on Apache from improved security etc
+
+sudo apt install apache2 libapache2-mod-wsgi-py3 -y
+
+update the following lines in webapp.wsgi
+    sys.path.insert(0, '/home/pi/PowerMaker') --> change to your path application
+    application.secret_key = 'PowerMaker' --> change to a secret key of your choice
+
+create the Apache config file for our flask application
+    cd /etc/apache2/sites-available
+    sudo nano powermaker.conf
+
+    <VirtualHost *:80>
+     # Add machine's IP address (use ifconfig command)
+     ServerName 10.170.180.104
+     # Give an alias to to start your website url with
+     WSGIScriptAlias / /home/pi/PowerMaker/webapp.wsgi
+     <Directory /home/pi/PowerMaker/>
+      # set permissions as per apache2.conf file
+            Options FollowSymLinks
+            AllowOverride None
+            Require all granted
+     </Directory>
+     ErrorLog ${APACHE_LOG_DIR}/error.log
+     LogLevel warn
+     CustomLog ${APACHE_LOG_DIR}/access.log combined
+    </VirtualHost>
+
+    sudo a2ensite powermaker.conf 
+    sudo a2dissite 000-default.conf
+    sudo systemctl reload apache2

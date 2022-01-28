@@ -326,6 +326,7 @@ def create_db_connection():
         print(f"Error: '{err}'")
 
     return conn
+
 # update_override(False, None)
 # print(get_override())
 # get_spot_price()
