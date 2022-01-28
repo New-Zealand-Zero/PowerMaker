@@ -192,18 +192,24 @@ def get_spot_price_stats():
     c.close()
     conn.close()
 
-    spot_prices = []
+    if (result):
+        spot_prices = []
+        x=0
+        for i in result:
+            x += 1
+            spot_prices.append(i[0])
 
-    x=0
-    for i in result:
-        x += 1
-        spot_prices.append(i[0])
-
-    spot_price_avg=np.average(spot_prices)
-    spot_price_min=np.min(spot_prices)
-    spot_price_max=np.max(spot_prices)
-    spot_price_lq=np.quantile(spot_prices,config.IMPORT_QUANTILE)
-    spot_price_uq=np.quantile(spot_prices,config.EXPORT_QUANTILE)
+        spot_price_avg=np.average(spot_prices)
+        spot_price_min=np.min(spot_prices)
+        spot_price_max=np.max(spot_prices)
+        spot_price_lq=np.quantile(spot_prices,config.IMPORT_QUANTILE)
+        spot_price_uq=np.quantile(spot_prices,config.EXPORT_QUANTILE)
+    else:
+        spot_price_avg=0
+        spot_price_min=0
+        spot_price_max=0
+        spot_price_lq=0
+        spot_price_uq=0
     
     logging.info(f"Average Spot Price {spot_price_avg}")
     return spot_price_avg, spot_price_min, spot_price_max, spot_price_lq, spot_price_uq
@@ -305,13 +311,13 @@ def update_graphs():
     plt.xlabel('Record')
     plt.ylabel('Spot Price')
     plt.title('Last 4 Hours Spot Price')
-    plt.savefig('static/spotprice.png')
+    plt.savefig(f"{config.HOME_DIR}/static/spotprice.png")
   
     plt.plot(points, actual_IE )
     plt.xlabel('Record')
     plt.ylabel('Actual IE')
     plt.title('Last 4 Hours Actual IE')
-    plt.savefig('static/actualIE.png')
+    plt.savefig(f"{config.HOME_DIR}/static/actualIE.png")
     plt.close()
 
 def create_db_connection():
@@ -330,15 +336,16 @@ def create_db_connection():
 # update_override(False, None)
 # print(get_override())
 # get_spot_price()
-#get_avg_spot_price()
+# get_avg_spot_price()
 # print(get_battery_status())
-#is_CPD()
+# is_CPD()
 # print(get_battery_charge())
-#charge_from_grid()
-#discharge_to_grid()
-#charging_time()
-#get_solar_generation()
-#get_existing_load()
+# charge_from_grid()
+# discharge_to_grid()
+# charging_time()
+# get_solar_generation()
+# get_existing_load()
 # get_status()
 # print(calc_charge_rate(1,1,0))
 # update_graphs()
+# print(get_spot_price_stats())

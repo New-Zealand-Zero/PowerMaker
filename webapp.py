@@ -48,9 +48,18 @@ def index():
 @app.route('/admin')
 def admin():
 
-    status = get_status()
-    status_desc = status[6]
-    return render_template('admin.html', **locals())
+    remote_ip_address = request.remote_addr
+    remote_ip_address_list = remote_ip_address.split(".")
+    server_ip_list = config.SERVER_IP.split(".")
+    print (remote_ip_address_list)
+    print (server_ip_list)
+
+    if (server_ip_list[0] == remote_ip_address_list[0] and server_ip_list[1] == remote_ip_address_list[1] and server_ip_list[2] == remote_ip_address_list[2]):
+        status = get_status()
+        status_desc = status[6]
+        return render_template('admin.html', **locals())
+    else:
+        return redirect('/')
 
 @app.route('/override', methods=['POST'])
 def override():

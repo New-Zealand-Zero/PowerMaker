@@ -5,6 +5,8 @@ LOW_BATTERY_THRESHOLD=0.25
 CHARGED_BATTERY_THRESHOLD=0.75
 MODBUS_CLIENT_IP = "192.168.1.x"
 DELAY = 1                 # Pause between updating the status
+HOME_DIR = "/home/user/PowerMarker"
+SERVER_IP = "192.168.1.1"
 
 #Database connection
 DATABASE = "pm"

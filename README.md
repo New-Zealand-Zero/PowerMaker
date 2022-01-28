@@ -63,4 +63,9 @@ create the Apache config file for our flask application
 
     sudo a2ensite powermaker.conf 
     sudo a2dissite 000-default.conf
+
+    give access to the apache user to update the graphs
+    chmod 777 static/actualIE.png
+    chmod 777 static/spotprice.png
+
     sudo systemctl reload apache2
