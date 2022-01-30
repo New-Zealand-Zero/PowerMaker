@@ -7,7 +7,7 @@ Developed in Python, Flask, Bootstrap 5 and MySQL.  PowerMaker runs on Linux, Wi
 sudo apt update  
 sudo apt upgrade -y
 
-sudo apt install python3-pip mysql-server libfreetype6-dev -y  
+sudo apt install python3-pip mysql-server libfreetype6-dev git -y  
 sudo pip install pymodbus pymysql flask matplotlib numpy
 
 sudo mysql  
@@ -19,7 +19,7 @@ sudo mysql
 cd  
 git clone https://github.com/New-Zealand-Zero/PowerMaker.git  
 
-cd PowerMaker
+cd PowerMaker  
 cp exampleconfig.py config.py  
 update config.py depending on your environment and requirements  
 
