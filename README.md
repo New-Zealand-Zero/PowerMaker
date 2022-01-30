@@ -20,8 +20,8 @@ cd
 git clone https://github.com/New-Zealand-Zero/PowerMaker.git  
 
 cd PowerMaker
-cp exampleconfig.py config.py
-update config.py depending on your environment and requirements.
+cp exampleconfig.py config.py  
+update config.py depending on your environment and requirements  
 
 Run the following script to setup the database
 ./setupdb.py
