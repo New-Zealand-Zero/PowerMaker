@@ -26,6 +26,8 @@ c = conn.cursor()
 while(True):
     try:
         #get current state
+        status = "unknown"
+        spot_price = get_spot_price()
         spot_price_avg, spot_price_min, spot_price_max, import_price, export_price = get_spot_price_stats()
         solar_generation = get_solar_generation()
         power_load = get_existing_load()
