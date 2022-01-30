@@ -4,23 +4,20 @@ An open-source Intelligent Web Application manages solar-generated energy for th
 
 Developed in Python, Flask, Bootstrap 5 and MySQL.  PowerMaker runs on Linux, Windows and Mac OS.  The following installation instructions have been tested on Ubuntu 20.04 and will need to be modified for other OS.
 
-sudo apt update
-
+sudo apt update  
 sudo apt upgrade -y
 
-sudo apt install python3-pip mysql-server libfreetype6-dev -y
-
+sudo apt install python3-pip mysql-server libfreetype6-dev -y  
 sudo pip install pymodbus pymysql flask matplotlib numpy
 
-sudo mysql
+sudo mysql  
+    create database pm;  
+    create user pm@localhost identified by 'SecurePasswordOfYourChoice';  
+    grant all on pm.* to pm@localhost;  
+    exit  
 
-create database pm;
-create user pm@localhost identified by 'SecurePasswordOfYourChoice';
-grant all on pm.* to pm@localhost;
-exit
-
-cd
-git clone https://github.com/New-Zealand-Zero/PowerMaker.git
+cd  
+git clone https://github.com/New-Zealand-Zero/PowerMaker.git  
 
 cd PowerMaker
 cp exampleconfig.py config.py
