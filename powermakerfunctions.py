@@ -121,21 +121,22 @@ def charge_from_grid(rate_to_charge):
     """
 
     if (config.PROD):
-        client.write_register(2703, int(rate_to_charge if rate_to_charge > 0 else config.CHARGE_RATE_KWH))
+        client.write_register(2703, int(rate_to_charge if rate_to_charge > 0 else 1000))
    
     logging.info(f"Importing from Grid @ {rate_to_charge} KwH" )
     return
   
 def discharge_to_grid(rate_to_discharge):
     """ export power to grid
-    Keyword arguments: rate to discharge
+    Keyword arguments: rate to discharge    
     """
+    print(rate_to_discharge)
     logging.info(f"Suggested export to Grid @ {rate_to_discharge/1000} kWh" )
     if (config.PROD):
-        rate_to_discharge=int(rate_to_discharge*0.1)
+        rate_to_discharge=int(rate_to_discharge*0.01)
         builder = BinaryPayloadBuilder(byteorder=Endian.Big, wordorder=Endian.Big)
         builder.reset()
-        builder.add_16bit_int(rate_to_discharge if rate_to_discharge < 0 else config.DISCHARGE_RATE_KWH)
+        builder.add_16bit_int(rate_to_discharge if rate_to_discharge < 0 else -1000)
         payload = builder.to_registers()
         client.write_register(2703, payload[0])  
     
@@ -160,9 +161,10 @@ def get_existing_load():
     Keyword arguments: None
     """    
     if (config.PROD):    
-        power_load = client.read_holding_registers(817).registers[0]
-        power_load += client.read_holding_registers(818).registers[0]
-        power_load += client.read_holding_registers(819).registers[0]
+        l1 = client.read_holding_registers(817).registers[0]
+        l2 = client.read_holding_registers(818).registers[0]
+        l3 = client.read_holding_registers(819).registers[0]
+        power_load = l1 + l2 + l3
     else:
         power_load= random.randint(5000, 10000)
 
@@ -231,6 +233,25 @@ def get_status():
     conn.close()
 
     return row
+
+def get_consumption():
+    
+    l1 = client.read_holding_registers(817).registers[0]
+    l2 = client.read_holding_registers(818).registers[0]
+    l3 = client.read_holding_registers(819).registers[0]
+    existing_load = l1 + l2 + l3
+    logging.info(f"Consumption {existing_load}")
+    return existing_load
+
+def get_grid_load():
+    
+    l1 = client.read_holding_registers(2600).registers[0]
+    l2 = client.read_holding_registers(2601).registers[0]
+    l3 = client.read_holding_registers(2602).registers[0]
+    grid_load= l1 + l2 + l3
+    logging.info(f"Grid Load {grid_load}")
+    return grid_load
+
 
 def get_override():
     """return if manual overide state
@@ -338,7 +359,7 @@ def create_db_connection():
 
     return conn
 
-def 
+
 
 # update_override(False, None)
 # print(get_override())
@@ -359,4 +380,5 @@ def
 # print(get_spot_price_stats())
 # print(get_actual_IE())
 #print(get_battery_status())
+#print(get_existing_load())
 

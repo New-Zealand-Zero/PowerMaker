@@ -31,9 +31,9 @@ while(True):
         solar_generation = get_solar_generation()
         power_load = get_existing_load()
         cdp = is_CPD()
-        actual_IE = get_actual_IE()
+        # actual_IE = get_actual_IE()
         battery_charge, battery_low, battery_full = get_battery_status()
-        override, override_rate = get_override()
+        override, override_rate = get_override()        
 
         # make decision based on current state
         if (override):
@@ -74,6 +74,9 @@ while(True):
         logging.warning("[Error {0}]".format(e))
     
     #log and save record
+    sleep(1)
+    actual_IE = get_existing_load()
+    grid_load = get_grid_load()
     logging.info(f"Status {status} \n" )
 
     c.execute(f"INSERT INTO DataPoint (SpotPrice, AvgSpotPrice, SolarGeneration , PowerLoad , BatteryCharge , Status, ActualIE) VALUES ({spot_price}, {spot_price_avg}, {solar_generation}, {power_load}, {battery_charge}, '{status}', {actual_IE})")       
