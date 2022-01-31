@@ -29,21 +29,20 @@ Run the following script to setup the database
 Run the following script which controls the import and exporting of power
 ./powermaker.py
 
-Run the following script to start the web server
+In a new terminal run the following script to start the web server  
 ./webapp.py
-
 
 To host on Apache from improved security etc
 
 sudo apt install apache2 libapache2-mod-wsgi-py3 -y
 
-update the following lines in webapp.wsgi
-    sys.path.insert(0, '/home/pi/PowerMaker') --> change to your path application
-    application.secret_key = 'PowerMaker' --> change to a secret key of your choice
+update the following lines in webapp.wsgi  
+    sys.path.insert(0, '/home/pi/PowerMaker') --> change to your application path
+    application.secret_key = 'PowerMaker' --> change to a secret key of your choice  
 
-create the Apache config file for our flask application
-    cd /etc/apache2/sites-available
-    sudo nano powermaker.conf
+create the Apache config file for our flask application  
+    cd /etc/apache2/sites-available  
+    sudo nano powermaker.conf  
 
     <VirtualHost *:80>
      # Add machine's IP address (use ifconfig command)
@@ -65,7 +64,8 @@ create the Apache config file for our flask application
     sudo a2dissite 000-default.conf
 
     give access to the apache user to update the graphs
-    chmod 777 static/actualIE.png
-    chmod 777 static/spotprice.png
+    cd  
+    chmod 777 PowerMaker/static/actualIE.png
+    chmod 777 PowerMaker/static/spotprice.png
 
     sudo systemctl reload apache2
