@@ -130,6 +130,7 @@ def discharge_to_grid(rate_to_discharge):
     """ export power to grid
     Keyword arguments: rate to discharge    
     """
+    
     print(rate_to_discharge)
     logging.info(f"Suggested export to Grid @ {rate_to_discharge/1000} kWh" )
     if (config.PROD):
