@@ -26,6 +26,7 @@ c = conn.cursor()
 while(True):
     try:
         #get current state
+        status = "unknown"
         spot_price = get_spot_price()
         spot_price_avg, spot_price_min, spot_price_max, import_price, export_price = get_spot_price_stats()
         solar_generation = get_solar_generation()
@@ -71,8 +72,6 @@ while(True):
                 status = f"No I/E - Battery OK @ {battery_charge:.1%}"
            
     except Exception as e:
-        logging.warning("[Error {0}]".format(e))
-        logging.warning("[Error {0}]".format(e))
         logging.warning("[Error {0}]".format(e))
     
     #log and save record
