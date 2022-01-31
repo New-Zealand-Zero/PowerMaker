@@ -15,14 +15,13 @@ from numpy import interp  # To scale values
 import pymysql
 
 # Log to file in production on screen for test
-if (config.PROD):
-    logging.basicConfig(filename='io.log', level=logging.INFO, format='%(asctime)s %(message)s')
-else:
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s TEST %(message)s') 
+# if (config.PROD):
+#     logging.basicConfig(filename='io.log', level=logging.INFO, format='%(asctime)s %(message)s')
+# else:
+logging.basicConfig(level=logging.INFO, format='%(asctime)s TEST %(message)s') 
 
 conn = create_db_connection()
 c = conn.cursor()
-
 while(True):
     try:
         #get current state
@@ -35,7 +34,7 @@ while(True):
         actual_IE = get_actual_IE()
         battery_charge, battery_low, battery_full = get_battery_status()
         override, override_rate = get_override()
-        
+
         # make decision based on current state
         if (override):
             #Manual override
@@ -65,11 +64,11 @@ while(True):
             #Stop any Importing or Exporting activity  
             reset_to_default() 
             if battery_low:
-                status = f"No I/E - Battery Low @ {battery_charge:.1%}"
+                status = f"No I/E - Battery Low @ {battery_charge} %"
             elif battery_full:
-                status = f"No I/E - Battery Ful @ {battery_charge:.1%}"
+                status = f"No I/E - Battery Ful @ {battery_charge} %"
             else:
-                status = f"No I/E - Battery OK @ {battery_charge:.1%}"
+                status = f"No I/E - Battery OK @ {battery_charge} %"
            
     except Exception as e:
         logging.warning("[Error {0}]".format(e))

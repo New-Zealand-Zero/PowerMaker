@@ -33,20 +33,20 @@ import matplotlib.pyplot as plt
 import pymysql
 
 # Log to file in production on screen for test
+logging.basicConfig(level=logging.INFO, format='%(asctime)s TEST %(message)s') 
+
 if (config.PROD):
-    logging.basicConfig(filename='io.log', level=logging.INFO, format='%(asctime)s %(message)s')
-else:
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s TEST %(message)s') 
+    client = ModbusClient('192.168.86.37', port='502', auto_open=True, auto_close=True)
 
 def get_spot_price():
     """return the latest power spotprice from OCP
      Keyword arguments: None
     """
+    spot_price =0
     if (config.PROD):
-        now = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M")
+        now = datetime.now().strftime("%Y-%m-%dT%H:%M")
         Defaults.Timeout = 25
         Defaults.Retries = 5
-        client = ModbusClient(config.MODBUS_CLIENT_IP, port='502', auto_open=True, auto_close=True)
         params = urllib.parse.urlencode({
                 '$filter': 'PointOfConnectionCode eq \'CML0331\'',
                 '&filter': 'TradingDate eq datetime'+now+''
@@ -80,16 +80,18 @@ def get_battery_status():
     """return the battery charge and status
      Keyword arguments: None
     """
+    # client = ModbusClient('192.168.86.37', port='502', auto_open=True, auto_close=True)
+
     if (config.PROD):  
         result = client.read_holding_registers(843)
-        battery_charge= result.registers[0]
+        battery_charge= int(result.registers[0])
     else:
-         battery_charge=  float("{0:.3f}".format(random.uniform(0.1, 1)))
+        battery_charge=  int("{0:.3f}".format(random.uniform(0.1, 1)))
 
     battery_low = battery_charge <= config.LOW_BATTERY_THRESHOLD
     battery_full = battery_charge >= config.CHARGED_BATTERY_THRESHOLD
 
-    logging.info(f"Battery: {battery_charge:.1%}" )
+    logging.info(f"Battery: {battery_charge} %" )
     return battery_charge, battery_low, battery_full
 
 def reset_to_default():
@@ -128,15 +130,15 @@ def discharge_to_grid(rate_to_discharge):
     """ export power to grid
     Keyword arguments: rate to discharge
     """
+    logging.info(f"Suggested export to Grid @ {rate_to_discharge/1000} kWh" )
     if (config.PROD):
-        rate_to_discharge=rate_to_discharge*0.01
+        rate_to_discharge=int(rate_to_discharge*0.1)
         builder = BinaryPayloadBuilder(byteorder=Endian.Big, wordorder=Endian.Big)
         builder.reset()
         builder.add_16bit_int(rate_to_discharge if rate_to_discharge < 0 else config.DISCHARGE_RATE_KWH)
         payload = builder.to_registers()
-        client.write_register(2703, payload[0])
-  
-    logging.info(f"Exporting to Grid @ {rate_to_discharge} KwH" )
+        client.write_register(2703, payload[0])  
+    
     return
 
 def get_solar_generation():
@@ -171,13 +173,15 @@ def get_actual_IE():
     """return current power load
     Keyword arguments: None
     """    
-    if (config.PROD):    
+    #client = ModbusClient('192.168.86.37', port='502', auto_open=True, auto_close=True)
+
+    if (not config.PROD):    
         power_load = client.read_holding_registers(2600).registers[0]
         power_load += client.read_holding_registers(2601).registers[0]
         power_load += client.read_holding_registers(2602).registers[0]
     else:
         power_load= random.randint(-config.IE_MAX_RATE, config.IE_MAX_RATE)
-
+ 
     logging.info(f"Actual IE {power_load}")
     return power_load
 
@@ -238,11 +242,12 @@ def get_override():
     row = c.fetchone()
     c.close()
     conn.close()
-
+   
     if (row[0] == "N"):
-        return False, None
+        return False, 0
     else:
-        return True, int(row[0])
+        return True, 100
+                # return True, int(row[0])
 
 def update_override(overide, rate):
     conn = create_db_connection()
@@ -333,9 +338,11 @@ def create_db_connection():
 
     return conn
 
+def 
+
 # update_override(False, None)
 # print(get_override())
-# get_spot_price()
+#print( get_spot_price())
 # get_avg_spot_price()
 # print(get_battery_status())
 # is_CPD()
@@ -343,9 +350,13 @@ def create_db_connection():
 # charge_from_grid()
 # discharge_to_grid()
 # charging_time()
-# get_solar_generation()
+#
+# print(get_solar_generation())
 # get_existing_load()
 # get_status()
 # print(calc_charge_rate(1,1,0))
 # update_graphs()
 # print(get_spot_price_stats())
+# print(get_actual_IE())
+#print(get_battery_status())
+
