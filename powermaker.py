@@ -14,11 +14,8 @@ from time import sleep  # To add delay
 from numpy import interp  # To scale values
 import pymysql
 
-# Log to file in production on screen for test
-# if (config.PROD):
-#     logging.basicConfig(filename='io.log', level=logging.INFO, format='%(asctime)s %(message)s')
-# else:
-logging.basicConfig(level=logging.INFO, format='%(asctime)s TEST %(message)s') 
+# Logging
+logging.basicConfig(level=logging.INFO, format=f'%(asctime)s {"PROD" if config.PROD else "TEST"} %(message)s') 
 
 conn = create_db_connection()
 c = conn.cursor()
@@ -31,7 +28,6 @@ while(True):
         solar_generation = get_solar_generation()
         power_load = get_existing_load()
         cdp = is_CPD()
-        # actual_IE = get_actual_IE()
         battery_charge, battery_low, battery_full = get_battery_status()
         override, override_rate = get_override()        
 
@@ -58,7 +54,7 @@ while(True):
         elif spot_price<= import_price and not battery_full:
             #import power from grid
             status = "Importing - Spot price low"
-            rate = calc_discharge_rate(spot_price,import_price,spot_price_min)
+            rate = calc_charge_rate(spot_price,import_price,spot_price_min)
             charge_from_grid(rate)
         else: 
             #Stop any Importing or Exporting activity  

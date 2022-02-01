@@ -32,8 +32,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pymysql
 
-# Log to file in production on screen for test
-logging.basicConfig(level=logging.INFO, format='%(asctime)s TEST %(message)s') 
+# Logging
+logging.basicConfig(level=logging.INFO, format=f'%(asctime)s {"PROD" if config.PROD else "TEST"} %(message)s') 
 
 if (config.PROD):
     client = ModbusClient('192.168.86.37', port='502', auto_open=True, auto_close=True)
@@ -80,13 +80,11 @@ def get_battery_status():
     """return the battery charge and status
      Keyword arguments: None
     """
-    # client = ModbusClient('192.168.86.37', port='502', auto_open=True, auto_close=True)
-
     if (config.PROD):  
         result = client.read_holding_registers(843)
         battery_charge= int(result.registers[0])
     else:
-        battery_charge=  int("{0:.3f}".format(random.uniform(0.1, 1)))
+        battery_charge=  random.randint(0, 100)
 
     battery_low = battery_charge <= config.LOW_BATTERY_THRESHOLD
     battery_full = battery_charge >= config.CHARGED_BATTERY_THRESHOLD
@@ -130,8 +128,7 @@ def discharge_to_grid(rate_to_discharge):
     """ export power to grid
     Keyword arguments: rate to discharge    
     """
-    
-    print(rate_to_discharge)
+  
     logging.info(f"Suggested export to Grid @ {rate_to_discharge/1000} kWh" )
     if (config.PROD):
         rate_to_discharge=int(rate_to_discharge*0.01)
@@ -176,7 +173,6 @@ def get_actual_IE():
     """return current power load
     Keyword arguments: None
     """    
-    #client = ModbusClient('192.168.86.37', port='502', auto_open=True, auto_close=True)
 
     if (not config.PROD):    
         power_load = client.read_holding_registers(2600).registers[0]
@@ -229,7 +225,6 @@ def get_status():
     c = conn.cursor()
     c.execute("SELECT * from DataPoint where RecordID = (SELECT Max(RecordID) from DataPoint)")
     row = c.fetchone()
-    print(row)
     c.close()
     conn.close()
 
@@ -237,22 +232,27 @@ def get_status():
 
 def get_consumption():
     
-    l1 = client.read_holding_registers(817).registers[0]
-    l2 = client.read_holding_registers(818).registers[0]
-    l3 = client.read_holding_registers(819).registers[0]
-    existing_load = l1 + l2 + l3
-    logging.info(f"Consumption {existing_load}")
-    return existing_load
+    if (config.PROD):
+        l1 = client.read_holding_registers(817).registers[0]
+        l2 = client.read_holding_registers(818).registers[0]
+        l3 = client.read_holding_registers(819).registers[0]
+        consumption = l1 + l2 + l3
+    else:
+        consumption = random.randint(0, 20000)
+    logging.info(f"Consumption {consumption}")
+    return consumption
 
 def get_grid_load():
     
-    l1 = client.read_holding_registers(2600).registers[0]
-    l2 = client.read_holding_registers(2601).registers[0]
-    l3 = client.read_holding_registers(2602).registers[0]
-    grid_load= l1 + l2 + l3
+    if (config.PROD):
+        l1 = client.read_holding_registers(2600).registers[0]
+        l2 = client.read_holding_registers(2601).registers[0]
+        l3 = client.read_holding_registers(2602).registers[0]
+        grid_load= l1 + l2 + l3
+    else:
+        grid_load = random.randint(0, 20000)
     logging.info(f"Grid Load {grid_load}")
     return grid_load
-
 
 def get_override():
     """return if manual overide state
@@ -268,8 +268,7 @@ def get_override():
     if (row[0] == "N"):
         return False, 0
     else:
-        return True, 100
-                # return True, int(row[0])
+        return True, int(row[0])
 
 def update_override(overide, rate):
     conn = create_db_connection()
@@ -295,7 +294,7 @@ def calc_discharge_rate(spot_price,export_price,spot_price_max):
 
     #linear scale the exp function applied value to discharge rate 
     discharge_rate = - int(config.IE_MIN_RATE + (scaled_margin_exp*multiplier))
-
+    print(discharge_rate)
     return discharge_rate
 
 def calc_charge_rate(spot_price,import_price,spot_price_min):
@@ -359,8 +358,6 @@ def create_db_connection():
         print(f"Error: '{err}'")
 
     return conn
-
-
 
 # update_override(False, None)
 # print(get_override())
