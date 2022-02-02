@@ -85,11 +85,11 @@ def get_battery_status():
         battery_charge= int(result.registers[0])
     else:
         battery_charge=  random.randint(0, 100)
-
+    
     battery_low = battery_charge <= config.LOW_BATTERY_THRESHOLD
     battery_full = battery_charge >= config.CHARGED_BATTERY_THRESHOLD
 
-    logging.info(f"Battery: {battery_charge} %" )
+    logging.info(f"Battery: {battery_charge}% Battery_low: {battery_low} Battery_full: {battery_full}" )
     return battery_charge, battery_low, battery_full
 
 def reset_to_default():
@@ -214,7 +214,7 @@ def get_spot_price_stats():
         spot_price_lq=0
         spot_price_uq=0
     
-    logging.info(f"Average Spot Price {spot_price_avg}")
+    logging.info(f"Average Spot Price {spot_price_avg:.4f} spot_price_min:{spot_price_min:.4f} spot_price_max: {spot_price_max:.4f} spot_price_lq:{spot_price_lq:.4f} spot_price_uq:{spot_price_uq:.4f}")
     return spot_price_avg, spot_price_min, spot_price_max, spot_price_lq, spot_price_uq
 
 def get_status():
@@ -294,7 +294,6 @@ def calc_discharge_rate(spot_price,export_price,spot_price_max):
 
     #linear scale the exp function applied value to discharge rate 
     discharge_rate = - int(config.IE_MIN_RATE + (scaled_margin_exp*multiplier))
-    print(discharge_rate)
     return discharge_rate
 
 def calc_charge_rate(spot_price,import_price,spot_price_min):
