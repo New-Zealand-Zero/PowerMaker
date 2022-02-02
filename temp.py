@@ -4,7 +4,6 @@
 from datetime import time
 import config
 import pymysql
-import config
 
 # Importing supporting functions
 from powermakerfunctions import *
@@ -16,33 +15,27 @@ from time import sleep  # To add delay
 import matplotlib.pyplot as plt
 import numpy as np
 
-rates=[]
+conn = create_db_connection()
+c = conn.cursor()
+c.execute("SELECT spotprice, timestamp from DataPoint where timestamp >= DATE_SUB(NOW(),INTERVAL 5 DAY)")
+result = c.fetchall()
+c.close()  
+conn.close()
+
+points = []
 spot_prices = []
+timestamp = []
 
-i=0.00
-while(i<=1):
-    spot_prices.append(i)
-    if (i<config.IMPORT_QUANTILE) :
-        rates.append(calc_charge_rate(i, config.IMPORT_QUANTILE, 0))
-    elif(i>config.EXPORT_QUANTILE):
-        rates.append(calc_discharge_rate(i, config.EXPORT_QUANTILE, 1))
-    else:
-        rates.append(0)
-    i+=0.00001
+x=0
+for i in result:
+    x += 1
+    points.append(x)
+    spot_prices.append(i[0])
+    timestamp.append(i[1])
 
-
-#print(rates)
-
-plt.plot(spot_prices,rates)
+ 
+# Creating plot
+plt.boxplot(spot_prices )
+ 
+# show plot
 plt.show()
-# plt.hist(spot_prices, 10)
-# plt.show()
-# plt.xlabel('Record')
-# plt.ylabel('Spot Price')
-# plt.title('Last 4 Hours Spot Price')
-
-# normalized = np.linalg.norm(spot_prices)
-# plt.hist(normalized, 10)
-# plt.show()
-
-
