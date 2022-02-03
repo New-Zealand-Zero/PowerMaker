@@ -22,6 +22,16 @@ spot_prices = []
 
 
 i=0.00
+# while(i<=1):
+#     spot_prices.append(i)
+#     if (i<config.IMPORT_QUANTILE) :
+#         rates.append(calc_charge_rate(i, config.IMPORT_QUANTILE, 0))
+#     elif(i>config.EXPORT_QUANTILE):
+#         rates.append(calc_discharge_rate(i, config.EXPORT_QUANTILE, 1))
+#     else:
+#         rates.append(0)
+#     i+=0.01
+
 while(i<=1):
     spot_prices.append(i)
     if (i<config.IMPORT_QUANTILE) :

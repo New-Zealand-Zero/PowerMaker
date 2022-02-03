@@ -51,6 +51,7 @@ while(True):
         elif cdp:
             #there is CPD active so immediately go into low export state
             status = "Exporting - CPD active"
+            discharge_to_grid(config.IE_MIN_RATE)
         elif spot_price<= import_price and not battery_full:
             #import power from grid
             status = "Importing - Spot price low"
@@ -70,9 +71,8 @@ while(True):
         logging.warning("[Error {0}]".format(e))
     
     #log and save record
-    sleep(1)
-    actual_IE = get_existing_load()
-    grid_load = get_grid_load()
+    # sleep(1)
+    actual_IE = get_grid_load()
     logging.info(f"Status {status} \n" )
 
     c.execute(f"INSERT INTO DataPoint (SpotPrice, AvgSpotPrice, SolarGeneration , PowerLoad , BatteryCharge , Status, ActualIE, SuggestedIE) VALUES ({spot_price}, {spot_price_avg}, {solar_generation}, {power_load}, {battery_charge}, '{status}', {actual_IE}, {suggested_IE})")       

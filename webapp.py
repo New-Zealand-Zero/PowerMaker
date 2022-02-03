@@ -35,9 +35,10 @@ def index():
     elif spot_price < import_price:
         solar_generation_color = "lightred"
 
-    battery_charge = "{:.1%}".format(status[5]) 
+    battery_charge = "{:.1%}".format(status[5])
     status_desc = status[6]
     actual_IE = status[7]
+    suggested_IE = status[9]
     import_price = "{:.4f}".format(import_price)
     export_price = "{:.4f}".format(export_price)
 
@@ -51,8 +52,6 @@ def admin():
     remote_ip_address = request.remote_addr
     remote_ip_address_list = remote_ip_address.split(".")
     server_ip_list = config.SERVER_IP.split(".")
-    print (remote_ip_address_list)
-    print (server_ip_list)
 
     if (server_ip_list[0] == remote_ip_address_list[0] and server_ip_list[1] == remote_ip_address_list[1] and server_ip_list[2] == remote_ip_address_list[2]):
         status = get_status()
@@ -65,8 +64,6 @@ def admin():
 def override():
     rate = request.form.get("rate")
     button = request.form.get("button")
-    print(rate)
-    print(button)
     if (button == 'Apply Manual I/E rate'):
         update_override(True, rate)
     elif (button == 'Automatic I/E'):

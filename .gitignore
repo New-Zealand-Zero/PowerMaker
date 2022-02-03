@@ -15,3 +15,7 @@ __pycache__/config.cpython-36.pyc
 __pycache__/config.cpython-38.pyc
 __pycache__/powermakerfunctions.cpython-38.pyc
 powermakerfunctions.py.save
+static/spotprice1D.png
+.gitignore
+static/spotpriceBoxPlot5D.png
+static/spotprice5D.png

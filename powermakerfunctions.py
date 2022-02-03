@@ -72,7 +72,7 @@ def get_spot_price():
         spot_price = row[0] + float("{0:.5f}".format(random.uniform(-0.10001, 0.10001)))
         if spot_price < 0:
             spot_price *= -1
-
+        spot_price = 0.00000001
     logging.info(f"Spot price ${spot_price}")
     return spot_price
 
@@ -106,7 +106,7 @@ def is_CPD():
         logging.info("CPD ACTIVE" if result.registers[0] == 3 else "CPD INACTIVE")
         return result.registers[0] == 3
     else:
-        if (random.randint(1, 10) > 9):
+        if (random.randint(1, 10) > 8):
             logging.info("CPD ACTIVE")
             return True
         else:
@@ -245,9 +245,9 @@ def get_consumption():
 def get_grid_load():
     
     if (config.PROD):
-        l1 = client.read_holding_registers(2600).registers[0]
-        l2 = client.read_holding_registers(2601).registers[0]
-        l3 = client.read_holding_registers(2602).registers[0]
+        l1 = client.read_holding_registers(820).registers[0]
+        l2 = client.read_holding_registers(821).registers[0]
+        l3 = client.read_holding_registers(822).registers[0]
         grid_load= l1 + l2 + l3
     else:
         grid_load = random.randint(0, 20000)
@@ -265,9 +265,12 @@ def get_override():
     c.close()
     conn.close()
    
+   
     if (row[0] == "N"):
+        logging.info(f"No manual overide")
         return False, 0
     else:
+        logging.info(f"Manual overide")
         return True, int(row[0])
 
 def update_override(overide, rate):
@@ -316,10 +319,9 @@ def update_graphs():
 
     conn = create_db_connection()
     c = conn.cursor()
-    c.execute("SELECT spotprice, actualIE from DataPoint where timestamp >= DATE_SUB(NOW(),INTERVAL 4 HOUR)")
+    c.execute("SELECT spotprice, actualIE from DataPoint where timestamp >= DATE_SUB(NOW(),INTERVAL 1 DAY)")
     result = c.fetchall()
     c.close()  
-    conn.close()
 
     points = []
     spot_prices = []
@@ -335,14 +337,42 @@ def update_graphs():
     plt.plot(points, spot_prices)
     plt.xlabel('Record')
     plt.ylabel('Spot Price')
-    plt.title('Last 4 Hours Spot Price')
-    plt.savefig(f"{config.HOME_DIR}/static/spotprice.png")
-  
+    plt.title('Last 24 Hours Spot Price')
+    plt.savefig(f"{config.HOME_DIR}/static/spotprice1D.png")
+    plt.close()
+   
     plt.plot(points, actual_IE )
     plt.xlabel('Record')
     plt.ylabel('Actual IE')
-    plt.title('Last 4 Hours Actual IE')
+    plt.title('Last 24 Hours Actual IE')
     plt.savefig(f"{config.HOME_DIR}/static/actualIE.png")
+    plt.close()
+
+    c = conn.cursor()
+    c.execute("SELECT spotprice, timestamp from DataPoint where timestamp >= DATE_SUB(NOW(),INTERVAL 5 DAY)")
+    result = c.fetchall()
+    c.close()
+    conn.close()
+
+    points.clear()
+    spot_prices.clear()
+
+    x=0
+    for i in result:
+        x += 1
+        points.append(x)
+        spot_prices.append(i[0])
+    
+    plt.plot(points, spot_prices)
+    plt.xlabel('Record')
+    plt.ylabel('Spot Price')
+    plt.title('Last 5 Days Spot Price')
+    plt.savefig(f"{config.HOME_DIR}/static/spotprice5D.png")
+    plt.close()
+
+    plt.boxplot(spot_prices )
+    plt.title('Last 5 Days Spot Price')
+    plt.savefig(f"{config.HOME_DIR}/static/spotpriceBoxPlot5D.png")
     plt.close()
 
 def create_db_connection():
@@ -360,7 +390,7 @@ def create_db_connection():
 
 # update_override(False, None)
 # print(get_override())
-#print( get_spot_price())
+# print( get_spot_price())
 # get_avg_spot_price()
 # print(get_battery_status())
 # is_CPD()
@@ -368,14 +398,13 @@ def create_db_connection():
 # charge_from_grid()
 # discharge_to_grid()
 # charging_time()
-#
 # print(get_solar_generation())
 # get_existing_load()
 # get_status()
 # print(calc_charge_rate(1,1,0))
-# update_graphs()
+update_graphs()
 # print(get_spot_price_stats())
 # print(get_actual_IE())
-#print(get_battery_status())
-#print(get_existing_load())
+# print(get_battery_status())
+# print(get_existing_load())
 
