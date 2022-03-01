@@ -14,11 +14,8 @@ from time import sleep  # To add delay
 from numpy import interp  # To scale values
 import pymysql
 
-# Log to file in production on screen for test
-# if (config.PROD):
-#     logging.basicConfig(filename='io.log', level=logging.INFO, format='%(asctime)s %(message)s')
-# else:
-logging.basicConfig(level=logging.INFO, format='%(asctime)s TEST %(message)s') 
+# Logging
+logging.basicConfig(level=logging.INFO, format=f'%(asctime)s {"PROD" if config.PROD else "TEST"} %(message)s') 
 
 conn = create_db_connection()
 c = conn.cursor()
@@ -31,35 +28,35 @@ while(True):
         solar_generation = get_solar_generation()
         power_load = get_existing_load()
         cdp = is_CPD()
-        # actual_IE = get_actual_IE()
         battery_charge, battery_low, battery_full = get_battery_status()
-        override, override_rate = get_override()        
+        override, suggested_IE = get_override()     
 
         # make decision based on current state
         if (override):
             #Manual override
-            if (override_rate<0):
+            if (suggested_IE<0):
                 status = f"Exporting - Manual Override"
-                discharge_to_grid(override_rate)
-            elif (override_rate>0):
+                discharge_to_grid(suggested_IE)
+            elif (suggested_IE>0):
                 status = f"Importing - Manual Override"
-                charge_from_grid(override_rate)
+                charge_from_grid(suggested_IE)
             else:
                 status = f"No I/E - Manual Override"
                 reset_to_default() 
         elif spot_price>export_price and not battery_low:
             #export power to grid
             status = f"Exporting - Spot Price High"
-            rate = calc_discharge_rate(spot_price,export_price,spot_price_max)
-            discharge_to_grid(rate)
+            suggested_IE = calc_discharge_rate(spot_price,export_price,spot_price_max)
+            discharge_to_grid(suggested_IE)
         elif cdp:
             #there is CPD active so immediately go into low export state
             status = "Exporting - CPD active"
+            discharge_to_grid(config.IE_MIN_RATE)
         elif spot_price<= import_price and not battery_full:
             #import power from grid
             status = "Importing - Spot price low"
-            rate = calc_discharge_rate(spot_price,import_price,spot_price_min)
-            charge_from_grid(rate)
+            suggested_IE = calc_charge_rate(spot_price,import_price,spot_price_min)
+            charge_from_grid(suggested_IE)
         else: 
             #Stop any Importing or Exporting activity  
             reset_to_default() 
@@ -74,12 +71,11 @@ while(True):
         logging.warning("[Error {0}]".format(e))
     
     #log and save record
-    sleep(1)
-    actual_IE = get_existing_load()
-    grid_load = get_grid_load()
+    # sleep(1)
+    actual_IE = get_grid_load()
     logging.info(f"Status {status} \n" )
 
-    c.execute(f"INSERT INTO DataPoint (SpotPrice, AvgSpotPrice, SolarGeneration , PowerLoad , BatteryCharge , Status, ActualIE) VALUES ({spot_price}, {spot_price_avg}, {solar_generation}, {power_load}, {battery_charge}, '{status}', {actual_IE})")       
+    c.execute(f"INSERT INTO DataPoint (SpotPrice, AvgSpotPrice, SolarGeneration , PowerLoad , BatteryCharge , Status, ActualIE, SuggestedIE) VALUES ({spot_price}, {spot_price_avg}, {solar_generation}, {power_load}, {battery_charge}, '{status}', {actual_IE}, {suggested_IE})")       
     conn.commit()
 
     sleep(config.DELAY)

@@ -14,7 +14,7 @@ c.execute("DROP TABLE IF EXISTS Config;")
 
 # Create tables
 c.execute(
-    "CREATE TABLE DataPoint (RecordID int NOT NULL AUTO_INCREMENT, SpotPrice float, AvgSpotPrice float, SolarGeneration int, PowerLoad int, BatteryCharge Float, Status varchar(35), ActualIE Float, Timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (RecordID) );"
+    "CREATE TABLE DataPoint (RecordID int NOT NULL AUTO_INCREMENT, SpotPrice float, AvgSpotPrice float, SolarGeneration int, PowerLoad int, BatteryCharge Float, Status varchar(35), ActualIE Float, Timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP, SuggestedIE INT, PRIMARY KEY (RecordID) );"
 )
 c.execute(
     "CREATE TABLE Config (ConfigID varchar(10), ConfigValue varchar(100));"

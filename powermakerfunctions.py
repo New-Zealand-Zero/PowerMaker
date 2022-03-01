@@ -32,8 +32,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pymysql
 
-# Log to file in production on screen for test
-logging.basicConfig(level=logging.INFO, format='%(asctime)s TEST %(message)s') 
+# Logging
+logging.basicConfig(level=logging.INFO, format=f'%(asctime)s {"PROD" if config.PROD else "TEST"} %(message)s') 
 
 if (config.PROD):
     client = ModbusClient('192.168.86.37', port='502', auto_open=True, auto_close=True)
@@ -72,7 +72,7 @@ def get_spot_price():
         spot_price = row[0] + float("{0:.5f}".format(random.uniform(-0.10001, 0.10001)))
         if spot_price < 0:
             spot_price *= -1
-
+        spot_price = 0.00000001
     logging.info(f"Spot price ${spot_price}")
     return spot_price
 
@@ -80,18 +80,16 @@ def get_battery_status():
     """return the battery charge and status
      Keyword arguments: None
     """
-    # client = ModbusClient('192.168.86.37', port='502', auto_open=True, auto_close=True)
-
     if (config.PROD):  
         result = client.read_holding_registers(843)
         battery_charge= int(result.registers[0])
     else:
-        battery_charge=  int("{0:.3f}".format(random.uniform(0.1, 1)))
-
+        battery_charge=  random.randint(0, 100)
+    
     battery_low = battery_charge <= config.LOW_BATTERY_THRESHOLD
     battery_full = battery_charge >= config.CHARGED_BATTERY_THRESHOLD
 
-    logging.info(f"Battery: {battery_charge} %" )
+    logging.info(f"Battery: {battery_charge}% Battery_low: {battery_low} Battery_full: {battery_full}" )
     return battery_charge, battery_low, battery_full
 
 def reset_to_default():
@@ -108,7 +106,7 @@ def is_CPD():
         logging.info("CPD ACTIVE" if result.registers[0] == 3 else "CPD INACTIVE")
         return result.registers[0] == 3
     else:
-        if (random.randint(1, 10) > 9):
+        if (random.randint(1, 10) > 8):
             logging.info("CPD ACTIVE")
             return True
         else:
@@ -130,8 +128,7 @@ def discharge_to_grid(rate_to_discharge):
     """ export power to grid
     Keyword arguments: rate to discharge    
     """
-    
-    print(rate_to_discharge)
+  
     logging.info(f"Suggested export to Grid @ {rate_to_discharge/1000} kWh" )
     if (config.PROD):
         rate_to_discharge=int(rate_to_discharge*0.01)
@@ -176,7 +173,6 @@ def get_actual_IE():
     """return current power load
     Keyword arguments: None
     """    
-    #client = ModbusClient('192.168.86.37', port='502', auto_open=True, auto_close=True)
 
     if (not config.PROD):    
         power_load = client.read_holding_registers(2600).registers[0]
@@ -218,7 +214,7 @@ def get_spot_price_stats():
         spot_price_lq=0
         spot_price_uq=0
     
-    logging.info(f"Average Spot Price {spot_price_avg}")
+    logging.info(f"Average Spot Price {spot_price_avg:.4f} spot_price_min:{spot_price_min:.4f} spot_price_max: {spot_price_max:.4f} spot_price_lq:{spot_price_lq:.4f} spot_price_uq:{spot_price_uq:.4f}")
     return spot_price_avg, spot_price_min, spot_price_max, spot_price_lq, spot_price_uq
 
 def get_status():
@@ -229,7 +225,6 @@ def get_status():
     c = conn.cursor()
     c.execute("SELECT * from DataPoint where RecordID = (SELECT Max(RecordID) from DataPoint)")
     row = c.fetchone()
-    print(row)
     c.close()
     conn.close()
 
@@ -237,22 +232,27 @@ def get_status():
 
 def get_consumption():
     
-    l1 = client.read_holding_registers(817).registers[0]
-    l2 = client.read_holding_registers(818).registers[0]
-    l3 = client.read_holding_registers(819).registers[0]
-    existing_load = l1 + l2 + l3
-    logging.info(f"Consumption {existing_load}")
-    return existing_load
+    if (config.PROD):
+        l1 = client.read_holding_registers(817).registers[0]
+        l2 = client.read_holding_registers(818).registers[0]
+        l3 = client.read_holding_registers(819).registers[0]
+        consumption = l1 + l2 + l3
+    else:
+        consumption = random.randint(0, 20000)
+    logging.info(f"Consumption {consumption}")
+    return consumption
 
 def get_grid_load():
     
-    l1 = client.read_holding_registers(2600).registers[0]
-    l2 = client.read_holding_registers(2601).registers[0]
-    l3 = client.read_holding_registers(2602).registers[0]
-    grid_load= l1 + l2 + l3
+    if (config.PROD):
+        l1 = client.read_holding_registers(820).registers[0]
+        l2 = client.read_holding_registers(821).registers[0]
+        l3 = client.read_holding_registers(822).registers[0]
+        grid_load= l1 + l2 + l3
+    else:
+        grid_load = random.randint(0, 20000)
     logging.info(f"Grid Load {grid_load}")
     return grid_load
-
 
 def get_override():
     """return if manual overide state
@@ -265,11 +265,13 @@ def get_override():
     c.close()
     conn.close()
    
+   
     if (row[0] == "N"):
+        logging.info(f"No manual overide")
         return False, 0
     else:
-        return True, 100
-                # return True, int(row[0])
+        logging.info(f"Manual overide")
+        return True, int(row[0])
 
 def update_override(overide, rate):
     conn = create_db_connection()
@@ -295,7 +297,6 @@ def calc_discharge_rate(spot_price,export_price,spot_price_max):
 
     #linear scale the exp function applied value to discharge rate 
     discharge_rate = - int(config.IE_MIN_RATE + (scaled_margin_exp*multiplier))
-
     return discharge_rate
 
 def calc_charge_rate(spot_price,import_price,spot_price_min):
@@ -318,10 +319,9 @@ def update_graphs():
 
     conn = create_db_connection()
     c = conn.cursor()
-    c.execute("SELECT spotprice, actualIE from DataPoint where timestamp >= DATE_SUB(NOW(),INTERVAL 4 HOUR)")
+    c.execute("SELECT spotprice, actualIE from DataPoint where timestamp >= DATE_SUB(NOW(),INTERVAL 1 DAY)")
     result = c.fetchall()
     c.close()  
-    conn.close()
 
     points = []
     spot_prices = []
@@ -337,14 +337,42 @@ def update_graphs():
     plt.plot(points, spot_prices)
     plt.xlabel('Record')
     plt.ylabel('Spot Price')
-    plt.title('Last 4 Hours Spot Price')
-    plt.savefig(f"{config.HOME_DIR}/static/spotprice.png")
-  
+    plt.title('Last 24 Hours Spot Price')
+    plt.savefig(f"{config.HOME_DIR}/static/spotprice1D.png")
+    plt.close()
+   
     plt.plot(points, actual_IE )
     plt.xlabel('Record')
     plt.ylabel('Actual IE')
-    plt.title('Last 4 Hours Actual IE')
+    plt.title('Last 24 Hours Actual IE')
     plt.savefig(f"{config.HOME_DIR}/static/actualIE.png")
+    plt.close()
+
+    c = conn.cursor()
+    c.execute("SELECT spotprice, timestamp from DataPoint where timestamp >= DATE_SUB(NOW(),INTERVAL 5 DAY)")
+    result = c.fetchall()
+    c.close()
+    conn.close()
+
+    points.clear()
+    spot_prices.clear()
+
+    x=0
+    for i in result:
+        x += 1
+        points.append(x)
+        spot_prices.append(i[0])
+    
+    plt.plot(points, spot_prices)
+    plt.xlabel('Record')
+    plt.ylabel('Spot Price')
+    plt.title('Last 5 Days Spot Price')
+    plt.savefig(f"{config.HOME_DIR}/static/spotprice5D.png")
+    plt.close()
+
+    plt.boxplot(spot_prices )
+    plt.title('Last 5 Days Spot Price')
+    plt.savefig(f"{config.HOME_DIR}/static/spotpriceBoxPlot5D.png")
     plt.close()
 
 def create_db_connection():
@@ -360,11 +388,9 @@ def create_db_connection():
 
     return conn
 
-
-
 # update_override(False, None)
 # print(get_override())
-#print( get_spot_price())
+# print( get_spot_price())
 # get_avg_spot_price()
 # print(get_battery_status())
 # is_CPD()
@@ -372,14 +398,13 @@ def create_db_connection():
 # charge_from_grid()
 # discharge_to_grid()
 # charging_time()
-#
 # print(get_solar_generation())
 # get_existing_load()
 # get_status()
 # print(calc_charge_rate(1,1,0))
-# update_graphs()
+update_graphs()
 # print(get_spot_price_stats())
 # print(get_actual_IE())
-#print(get_battery_status())
-#print(get_existing_load())
+# print(get_battery_status())
+# print(get_existing_load())
 
