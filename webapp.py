@@ -35,7 +35,7 @@ def index():
     elif spot_price < import_price:
         solar_generation_color = "lightred"
 
-    battery_charge = "{:.1%}".format(status[5])
+    battery_charge = "{:.0f}".format(status[5])
     status_desc = status[6]
     actual_IE = status[7]
     suggested_IE = status[9]

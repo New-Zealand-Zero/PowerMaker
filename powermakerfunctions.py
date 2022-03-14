@@ -72,7 +72,6 @@ def get_spot_price():
         spot_price = row[0] + float("{0:.5f}".format(random.uniform(-0.10001, 0.10001)))
         if spot_price < 0:
             spot_price *= -1
-        spot_price = 0.00000001
     logging.info(f"Spot price ${spot_price}")
     return spot_price
 
@@ -400,9 +399,9 @@ def create_db_connection():
 # charging_time()
 # print(get_solar_generation())
 # get_existing_load()
-# get_status()
+# print(get_status())
 # print(calc_charge_rate(1,1,0))
-update_graphs()
+# update_graphs()
 # print(get_spot_price_stats())
 # print(get_actual_IE())
 # print(get_battery_status())
