@@ -72,6 +72,7 @@ def get_spot_price():
         spot_price = row[0] + float("{0:.5f}".format(random.uniform(-0.10001, 0.10001)))
         if spot_price < 0:
             spot_price *= -1
+        
     logging.info(f"Spot price ${spot_price}")
     return spot_price
 
@@ -184,7 +185,7 @@ def get_actual_IE():
     return power_load
 
 def get_spot_price_stats():
-    """return average spot price
+    """return average spot price data
     Keyword arguments: None
     """  
     conn = create_db_connection()
@@ -204,17 +205,27 @@ def get_spot_price_stats():
         spot_price_avg=np.average(spot_prices)
         spot_price_min=np.min(spot_prices)
         spot_price_max=np.max(spot_prices)
-        spot_price_lq=np.quantile(spot_prices,config.IMPORT_QUANTILE)
-        spot_price_uq=np.quantile(spot_prices,config.EXPORT_QUANTILE)
+        import_price=np.quantile(spot_prices,config.IMPORT_QUANTILE)
+        export_price=np.quantile(spot_prices,config.EXPORT_QUANTILE)
     else:
         spot_price_avg=0
         spot_price_min=0
         spot_price_max=0
-        spot_price_lq=0
-        spot_price_uq=0
+        import_price=0
+        export_price=0
     
-    logging.info(f"Average Spot Price {spot_price_avg:.4f} spot_price_min:{spot_price_min:.4f} spot_price_max: {spot_price_max:.4f} spot_price_lq:{spot_price_lq:.4f} spot_price_uq:{spot_price_uq:.4f}")
-    return spot_price_avg, spot_price_min, spot_price_max, spot_price_lq, spot_price_uq
+    # update the import price if less than min margin
+    if (import_price > (spot_price_avg - config.HALF_MIN_MARGIN)):
+        logging.info (f"calculated import price {import_price:.4f} below min margin updated to min")
+        import_price = spot_price_avg - config.HALF_MIN_MARGIN
+    
+    # update the export price if less than if less than min margin
+    if (export_price < (spot_price_avg + config.HALF_MIN_MARGIN)):
+        logging.info (f"calculated export price {export_price:.4f} below min margin updated to min")
+        export_price = spot_price_avg + config.HALF_MIN_MARGIN
+    
+    logging.info(f"Average Spot Price {spot_price_avg:.4f} spot_price_min:{spot_price_min:.4f} spot_price_max: {spot_price_max:.4f} import_price:{import_price:.4f} export_price:{export_price:.4f}")
+    return spot_price_avg, spot_price_min, spot_price_max, import_price, export_price
 
 def get_status():
     """return current status
@@ -249,7 +260,7 @@ def get_grid_load():
         l3 = client.read_holding_registers(822).registers[0]
         grid_load= l1 + l2 + l3
     else:
-        grid_load = random.randint(0, 20000)
+        grid_load = random.randint(-20000, 20000)
     logging.info(f"Grid Load {grid_load}")
     return grid_load
 
@@ -324,14 +335,23 @@ def update_graphs():
 
     points = []
     spot_prices = []
-    actual_IE = []
-
+    actual_import = []
+    actual_export = []
+    
     x=0
     for i in result:
         x += 1
         points.append(x)
         spot_prices.append(i[0])
-        actual_IE.append(i[1])
+        if (i[1] > 0 ):
+            actual_import.append(i[1])
+        else:
+            actual_import.append(0)
+
+        if (i[1] < 0 ):
+            actual_export.append(abs(i[1]))
+        else:
+            actual_export.append(0)
 
     plt.plot(points, spot_prices)
     plt.xlabel('Record')
@@ -340,11 +360,18 @@ def update_graphs():
     plt.savefig(f"{config.HOME_DIR}/static/spotprice1D.png")
     plt.close()
    
-    plt.plot(points, actual_IE )
+    plt.plot(points, actual_import )
     plt.xlabel('Record')
-    plt.ylabel('Actual IE')
-    plt.title('Last 24 Hours Actual IE')
-    plt.savefig(f"{config.HOME_DIR}/static/actualIE.png")
+    plt.ylabel('Actual Import')
+    plt.title('Last 24 Hours Actual Import')
+    plt.savefig(f"{config.HOME_DIR}/static/actualimport.png")
+    plt.close()
+
+    plt.plot(points, actual_export )
+    plt.xlabel('Record')
+    plt.ylabel('Actual Export')
+    plt.title('Last 24 Hours Actual Export')
+    plt.savefig(f"{config.HOME_DIR}/static/actualexport.png")
     plt.close()
 
     c = conn.cursor()
