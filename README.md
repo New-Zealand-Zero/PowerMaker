@@ -1,8 +1,12 @@
 # PowerMaker
 
-An open-source Intelligent Web Application manages solar-generated energy for the home or business and optimises buying and selling decisions onto the spot market.  
+PowerMaker enables businesses and individuals to use their stationary battery arrays to arbitrage the New Zealand spot electricity market to drastically lower the pay back on their capital investment while also contributing to NZs Renewable energy ratio.  
+
+An open-source Intelligent Web Application optimising buying and selling decisions onto the spot market.
 
 Developed in Python, Flask, Bootstrap 5 and MySQL.  PowerMaker runs on Linux, Windows and Mac OS.  The following installation instructions have been tested on Ubuntu 20.04 and will need to be modified for other OS.
+
+Installation instructions
 
 sudo apt update  
 sudo apt upgrade -y

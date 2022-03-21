@@ -23,13 +23,27 @@ while(True):
     try:
         #get current state
         status = "unknown"
-        spot_price = get_spot_price()
+        spot_price = get_spot_price()        
         spot_price_avg, spot_price_min, spot_price_max, import_price, export_price = get_spot_price_stats()
         solar_generation = get_solar_generation()
         power_load = get_existing_load()
         cdp = is_CPD()
         battery_charge, battery_low, battery_full = get_battery_status()
         override, suggested_IE = get_override()     
+
+        #unit test decision
+        # spot_price = 1
+        # spot_price_avg = 1
+        # spot_price_min = 0.10
+        # spot_price_max = 2 
+        # import_price = 0.25
+        # export_price = 1.75
+        # cdp = False
+        # battery_charge = 0.50
+        # battery_low = False
+        # battery_full = False
+        # override = False
+        # suggested_IE = -1
 
         # make decision based on current state
         if (override):
@@ -43,8 +57,13 @@ while(True):
             else:
                 status = f"No I/E - Manual Override"
                 reset_to_default() 
+        elif spot_price<= config.LOW_PRICE_IMPORT and not battery_full:
+            #spot price less than Low price min import
+            status = "Importing - Spot price < min"
+            suggested_IE = config.IE_MAX_RATE
+            charge_from_grid(suggested_IE)
         elif spot_price>export_price and not battery_low:
-            #export power to grid
+            #export power to grid if price is greater than calc export price
             status = f"Exporting - Spot Price High"
             suggested_IE = calc_discharge_rate(spot_price,export_price,spot_price_max)
             discharge_to_grid(suggested_IE)
@@ -53,7 +72,7 @@ while(True):
             status = "Exporting - CPD active"
             discharge_to_grid(config.IE_MIN_RATE)
         elif spot_price<= import_price and not battery_full:
-            #import power from grid
+            #import power from grid if price is less than calc export price
             status = "Importing - Spot price low"
             suggested_IE = calc_charge_rate(spot_price,import_price,spot_price_min)
             charge_from_grid(suggested_IE)
@@ -77,5 +96,5 @@ while(True):
 
     c.execute(f"INSERT INTO DataPoint (SpotPrice, AvgSpotPrice, SolarGeneration , PowerLoad , BatteryCharge , Status, ActualIE, SuggestedIE) VALUES ({spot_price}, {spot_price_avg}, {solar_generation}, {power_load}, {battery_charge}, '{status}', {actual_IE}, {suggested_IE})")       
     conn.commit()
-
+     
     sleep(config.DELAY)

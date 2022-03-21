@@ -19,3 +19,5 @@ static/spotprice1D.png
 .gitignore
 static/spotpriceBoxPlot5D.png
 static/spotprice5D.png
+static/actualexport.png
+static/actualimport.png
