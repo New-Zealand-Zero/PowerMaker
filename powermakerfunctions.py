@@ -119,7 +119,7 @@ def charge_from_grid(rate_to_charge):
     """
 
     if (config.PROD):
-        client.write_register(2703, int(rate_to_charge if rate_to_charge > 0 else 1000))
+        client.write_register(2703, int(rate_to_charge*0.01 if rate_to_charge > 0 else 1000))
    
     logging.info(f"Importing from Grid @ {rate_to_charge} KwH" )
     return
