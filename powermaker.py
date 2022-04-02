@@ -85,16 +85,23 @@ while(True):
                 status = f"No I/E - Battery Ful @ {battery_charge} %"
             else:
                 status = f"No I/E - Battery OK @ {battery_charge} %"
-           
+        
+        actual_IE = get_grid_load()
+        c.execute(f"INSERT INTO DataPoint (SpotPrice, AvgSpotPrice, SolarGeneration , PowerLoad , BatteryCharge , Status, ActualIE, SuggestedIE) VALUES ({spot_price}, {spot_price_avg}, {solar_generation}, {power_load}, {battery_charge}, '{status}', {actual_IE}, {suggested_IE})")       
+
     except Exception as e:
-        logging.warning("[Error {0}]".format(e))
+        reset_to_default()
+        error = str(e)
+        print(e)
+        if error == "SpotPriceUnavailable":                
+            status = "ERROR Spot Price Unavailable"
+        elif error == "BatteryStatusUnavailable":
+            status = "ERROR Battery Status Unavailable"
+
+        c.execute(f"INSERT INTO DataPoint (SpotPrice, AvgSpotPrice, SolarGeneration , PowerLoad , BatteryCharge , Status, ActualIE, SuggestedIE) VALUES (0, 0, 0, 0, 0, '{status}', 0, 0)")
     
     #log and save record
-    # sleep(1)
-    actual_IE = get_grid_load()
     logging.info(f"Status {status} \n" )
-
-    c.execute(f"INSERT INTO DataPoint (SpotPrice, AvgSpotPrice, SolarGeneration , PowerLoad , BatteryCharge , Status, ActualIE, SuggestedIE) VALUES ({spot_price}, {spot_price_avg}, {solar_generation}, {power_load}, {battery_charge}, '{status}', {actual_IE}, {suggested_IE})")       
     conn.commit()
-     
+
     sleep(config.DELAY)
