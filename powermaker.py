@@ -31,20 +31,6 @@ while(True):
         battery_charge, battery_low, battery_full = get_battery_status()
         override, suggested_IE = get_override()     
 
-        #unit test decision
-        # spot_price = 1
-        # spot_price_avg = 1
-        # spot_price_min = 0.10
-        # spot_price_max = 2 
-        # import_price = 0.25
-        # export_price = 1.75
-        # cdp = False
-        # battery_charge = 0.50
-        # battery_low = False
-        # battery_full = False
-        # override = False
-        # suggested_IE = -1
-
         # make decision based on current state
         if (override):
             #Manual override
@@ -88,20 +74,33 @@ while(True):
         
         actual_IE = get_grid_load()
         c.execute(f"INSERT INTO DataPoint (SpotPrice, AvgSpotPrice, SolarGeneration , PowerLoad , BatteryCharge , Status, ActualIE, SuggestedIE) VALUES ({spot_price}, {spot_price_avg}, {solar_generation}, {power_load}, {battery_charge}, '{status}', {actual_IE}, {suggested_IE})")       
+        #log and save record
+        logging.info(f"Status {status} \n" )
+        conn.commit()
 
     except Exception as e:
-        reset_to_default()
         error = str(e)
-        print(e)
         if error == "SpotPriceUnavailable":                
             status = "ERROR Spot Price Unavailable"
-        elif error == "BatteryStatusUnavailable":
-            status = "ERROR Battery Status Unavailable"
+            logging.info(f"Status {status}" )
+            c.execute(f"INSERT INTO DataPoint (SpotPrice, AvgSpotPrice, SolarGeneration , PowerLoad , BatteryCharge , Status, ActualIE, SuggestedIE) VALUES (0, 0, 0, 0, 0, '{status}', 0, 0)")
+            conn.commit()
+        elif error == "DatabaseUnavailable":                
+            status = "Database Unavailable"
+            logging.info(f"Status {status}" )
+            c.execute(f"INSERT INTO DataPoint (SpotPrice, AvgSpotPrice, SolarGeneration , PowerLoad , BatteryCharge , Status, ActualIE, SuggestedIE) VALUES (0, 0, 0, 0, 0, '{status}', 0, 0)")
+            conn.commit()
+       
+        #try and stop all I/E as an exception has occurred
+        try:
+            reset_to_default()
+            status = "ERROR occurred I/E has been stopped"
+        except Exception as e:
+            error = str(e)
+            status = f"ERROR unable to stop I/E: {error}"
 
+        logging.info(f"Status {status} \n" )
         c.execute(f"INSERT INTO DataPoint (SpotPrice, AvgSpotPrice, SolarGeneration , PowerLoad , BatteryCharge , Status, ActualIE, SuggestedIE) VALUES (0, 0, 0, 0, 0, '{status}', 0, 0)")
+        conn.commit()
     
-    #log and save record
-    logging.info(f"Status {status} \n" )
-    conn.commit()
-
     sleep(config.DELAY)

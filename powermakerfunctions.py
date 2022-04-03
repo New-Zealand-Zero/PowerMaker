@@ -84,23 +84,20 @@ def get_battery_status():
     """return the battery charge and status
      Keyword arguments: None
     """
-    try:
-        if (config.PROD):  
-            result = client.read_holding_registers(843)
-            battery_charge= int(result.registers[0])
-        else:
-            battery_charge=  random.randint(0, 100)
-            i = 1/0      
-        
-        battery_low = battery_charge <= config.LOW_BATTERY_THRESHOLD
-        battery_full = battery_charge >= config.CHARGED_BATTERY_THRESHOLD
-    except Exception as e:
-        raise NameError('BatteryStatusUnavailable')
+    if (config.PROD):  
+        result = client.read_holding_registers(843)
+        battery_charge= int(result.registers[0])
+    else:
+        battery_charge=  random.randint(0, 100)    
+    
+    battery_low = battery_charge <= config.LOW_BATTERY_THRESHOLD
+    battery_full = battery_charge >= config.CHARGED_BATTERY_THRESHOLD
 
     logging.info(f"Battery: {battery_charge}% Battery_low: {battery_low} Battery_full: {battery_full}" )
     return battery_charge, battery_low, battery_full
 
 def reset_to_default():
+
     if (config.PROD):
         client.write_register(2703,int(0))
 
@@ -108,6 +105,7 @@ def is_CPD():
     """check if CONTROL PERIOD STATUS is active - a period of peak loading on distribution network.
     Keyword arguments: None
     """
+
     if (config.PROD):
         result = client.read_holding_registers(3422, unit=1)
         result = client.read_holding_registers(3422, unit=1)
@@ -418,7 +416,7 @@ def create_db_connection():
         passwd=config.PASSWD,
         host='localhost')
     except logging.error as err:
-        print(f"Error: '{err}'")
+        raise NameError('DatabaseUnavailable')
 
     return conn
 
