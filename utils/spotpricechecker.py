@@ -7,6 +7,8 @@ from pymodbus.client.sync import ModbusTcpClient as ModbusClient
 from pymodbus.payload import BinaryPayloadDecoder
 from pymodbus.payload import BinaryPayloadBuilder, Endian, BinaryPayloadDecoder
 
+from utilfunctions import is_CPD
+
 DISCHARGE_PRICE=0.20
 CHARGE_PRICE=0.02
 # CEASE_CHARGE_PRICE=0.12
@@ -40,6 +42,10 @@ def get_spot_price():
     json_data = json.loads(data.decode('utf-8'))
     value = json_data[0]['DollarsPerMegawattHour']/1000
 
+    if is_CPD():
+        print("!!!CPD ACTIVE")
+    else:
+        print("CPD INACTIVE")
     print("%s:Spot price is $%s" %(now, value))
     
     logging.info("Spot price is $%s" ,value)
