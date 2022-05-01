@@ -42,40 +42,44 @@ def get_spot_price():
     """return the latest power spotprice from OCP
      Keyword arguments: None
     """
-    spot_price =0
-    if (config.PROD):
-        now = datetime.now().strftime("%Y-%m-%dT%H:%M")
-        Defaults.Timeout = 25
-        Defaults.Retries = 5
-        params = urllib.parse.urlencode({
-                '$filter': 'PointOfConnectionCode eq \'CML0331\'',
-                '&filter': 'TradingDate eq datetime'+now+''
-        })
-        request_headers = {
-        'Ocp-Apim-Subscription-Key': config.OCP_APIM_SUBSCRIPTION_KEY
-        }
-        conn = http.client.HTTPSConnection('emi.azure-api.net')
-        conn.request("GET", "/real-time-prices/?%s" % params, "{body}", request_headers)
-        response = conn.getresponse()
-        data = response.read()
-        json_data = json.loads(data.decode('utf-8'))
-        spot_price = json_data[0]['DollarsPerMegawattHour']/1000 
-    else:
-        #generate test data
-        conn = create_db_connection()       
-        c = conn.cursor()
-        c.execute("SELECT SpotPrice from DataPoint where RecordID = (SELECT Max(RecordID) from DataPoint)")
-        row = c.fetchone()
-        c.close()
-        conn.close()
-  
-        spot_price = row[0] + float("{0:.5f}".format(random.uniform(-0.10001, 0.10001)))
-        if spot_price < 0:
-            spot_price *= -1
-        
-    logging.info(f"Spot price ${spot_price}")
-    return spot_price
+    try:
+        spot_price =0
+        if (config.PROD):
+            now = datetime.now().strftime("%Y-%m-%dT%H:%M")
+            Defaults.Timeout = 25
+            Defaults.Retries = 5
+            params = urllib.parse.urlencode({
+                    '$filter': 'PointOfConnectionCode eq \'CML0331\'',
+                    '&filter': 'TradingDate eq datetime'+now+''
+            })
+            request_headers = {
+            'Ocp-Apim-Subscription-Key': config.OCP_APIM_SUBSCRIPTION_KEY
+            }
+            conn = http.client.HTTPSConnection('emi.azure-api.net')
+            conn.request("GET", "/real-time-prices/?%s" % params, "{body}", request_headers)
+            response = conn.getresponse()
+            data = response.read()
+            json_data = json.loads(data.decode('utf-8'))
+            spot_price = json_data[0]['DollarsPerMegawattHour']/1000 
+        else:
+            #generate test data
+            conn = create_db_connection()       
+            c = conn.cursor()
+            c.execute("SELECT SpotPrice from DataPoint where RecordID = (SELECT Max(RecordID) from DataPoint)")
+            row = c.fetchone()
+            c.close()
+            conn.close()
+    
+            spot_price = row[0] + float("{0:.5f}".format(random.uniform(-0.10001, 0.10001)))
+            if spot_price < 0:
+                spot_price *= -1     
 
+    except Exception as e:
+        raise NameError('SpotPriceUnavailable')
+
+    logging.info(f"Spot price ${spot_price}")
+    return spot_price 
+    
 def get_battery_status():
     """return the battery charge and status
      Keyword arguments: None
@@ -84,7 +88,7 @@ def get_battery_status():
         result = client.read_holding_registers(843)
         battery_charge= int(result.registers[0])
     else:
-        battery_charge=  random.randint(0, 100)
+        battery_charge=  random.randint(0, 100)    
     
     battery_low = battery_charge <= config.LOW_BATTERY_THRESHOLD
     battery_full = battery_charge >= config.CHARGED_BATTERY_THRESHOLD
@@ -93,6 +97,7 @@ def get_battery_status():
     return battery_charge, battery_low, battery_full
 
 def reset_to_default():
+
     if (config.PROD):
         client.write_register(2703,int(0))
 
@@ -100,6 +105,7 @@ def is_CPD():
     """check if CONTROL PERIOD STATUS is active - a period of peak loading on distribution network.
     Keyword arguments: None
     """
+
     if (config.PROD):
         result = client.read_holding_registers(3422, unit=1)
         result = client.read_holding_registers(3422, unit=1)
@@ -190,7 +196,7 @@ def get_spot_price_stats():
     """  
     conn = create_db_connection()
     c = conn.cursor()
-    c.execute("SELECT SpotPrice from DataPoint where Timestamp > now() - interval 5 day")
+    c.execute("SELECT SpotPrice from DataPoint where Timestamp > now() - interval 5 day AND SpotPrice and LEFT(status,5) <> 'ERROR'")
     result = c.fetchall()
     c.close()
     conn.close()
@@ -329,7 +335,7 @@ def update_graphs():
 
     conn = create_db_connection()
     c = conn.cursor()
-    c.execute("SELECT spotprice, actualIE from DataPoint where timestamp >= DATE_SUB(NOW(),INTERVAL 1 DAY)")
+    c.execute("SELECT spotprice, actualIE from DataPoint where timestamp >= DATE_SUB(NOW(),INTERVAL 1 DAY) and LEFT(status,5) <> 'ERROR'")
     result = c.fetchall()
     c.close()  
 
@@ -375,7 +381,7 @@ def update_graphs():
     plt.close()
 
     c = conn.cursor()
-    c.execute("SELECT spotprice, timestamp from DataPoint where timestamp >= DATE_SUB(NOW(),INTERVAL 5 DAY)")
+    c.execute("SELECT spotprice, timestamp from DataPoint where timestamp >= DATE_SUB(NOW(),INTERVAL 5 DAY) AND LEFT(status,5) <> 'ERROR'")
     result = c.fetchall()
     c.close()
     conn.close()
@@ -410,7 +416,7 @@ def create_db_connection():
         passwd=config.PASSWD,
         host='localhost')
     except logging.error as err:
-        print(f"Error: '{err}'")
+        raise NameError('DatabaseUnavailable')
 
     return conn
 
