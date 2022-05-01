@@ -1,5 +1,5 @@
 ########### Python 3.2 #############
-import http.client, urllib.request, urllib.parse, urllib.error, base64, time, json, ast
+import http.client, urllib.request, urllib.parse, urllib.error, base64, time, json, ast, utilfunctions
 from datetime import datetime
 from pymodbus.constants import Defaults
 from pymodbus.constants import Endian
@@ -39,6 +39,8 @@ def get_spot_price():
     data = response.read()
     json_data = json.loads(data.decode('utf-8'))
     value = json_data[0]['DollarsPerMegawattHour']/1000
+
+    print("%s:Spot price is $%s" %(now, value))
     
     logging.info("Spot price is $%s" ,value)
     conn.close()

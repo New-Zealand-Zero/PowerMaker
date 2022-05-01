@@ -32,3 +32,4 @@ def get_spot_price():
 
 while(1):
     print(get_spot_price())
+    time.sleep(60)
