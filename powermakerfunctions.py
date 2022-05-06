@@ -135,7 +135,7 @@ def discharge_to_grid(rate_to_discharge):
     Keyword arguments: rate to discharge    
     """
   
-    logging.info(f"Suggested export to Grid @ {rate_to_discharge/1000} kWh" )
+    logging.info(f"Suggested export to Grid @ {rate_to_discharge} watts" )
     if (config.PROD):
         rate_to_discharge=int(rate_to_discharge*0.01)
         builder = BinaryPayloadBuilder(byteorder=Endian.Big, wordorder=Endian.Big)
