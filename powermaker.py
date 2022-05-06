@@ -43,6 +43,10 @@ while(True):
             else:
                 status = f"No I/E - Manual Override"
                 reset_to_default() 
+        elif cdp:
+            #there is CPD active so immediately go into low export state
+            status = "Exporting - CPD active"
+            discharge_to_grid(config.IE_MIN_RATE*-1)
         elif spot_price<= config.LOW_PRICE_IMPORT and not battery_full:
             #spot price less than Low price min import
             status = "Importing - Spot price < min"
@@ -53,10 +57,6 @@ while(True):
             status = f"Exporting - Spot Price High"
             suggested_IE = calc_discharge_rate(spot_price,export_price,spot_price_max)
             discharge_to_grid(suggested_IE)
-        elif cdp:
-            #there is CPD active so immediately go into low export state
-            status = "Exporting - CPD active"
-            discharge_to_grid(config.IE_MIN_RATE)
         elif spot_price<= import_price and not battery_full:
             #import power from grid if price is less than calc export price
             status = "Importing - Spot price low"
