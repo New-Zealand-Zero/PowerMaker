@@ -420,6 +420,11 @@ def create_db_connection():
 
     return conn
 
+def is_CPD_period():
+    #Auora congestion period runs from roughly mid may to mid september
+    month = datetime.datetime.month()
+    return month in [5,6,7,8,9]
+
 # update_override(False, None)
 # print(get_override())
 # print( get_spot_price())
