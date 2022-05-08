@@ -68,8 +68,8 @@ while(True):
 
 
         #winter cpd dodging - charge up to 80% if spot price is <= spot price average
-        elif now > time(1,0) and now < time(5,0) and battery_charge < 80:
-            print ("WINTER CHARGING TIME")
+        elif now > time(1,0) and now < time(5,0) and battery_charge < 80 and is_CPD_period():
+            print ("CPD CHARGING PERIOD")
             if spot_price <= spot_price_avg:
                 print ("SPOT PRICE IS LESS THAN AVERAGE CHARGING")
                 status="Importing - Winter Night Charging"
