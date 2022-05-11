@@ -1,4 +1,4 @@
-import http.client, urllib.request, urllib.parse, urllib.error, base64, time, json, ast, datetime, math
+import http.client, urllib.request, urllib.parse, urllib.error, base64, time, json, ast, datetime, math, keys
 
 
 import logging
@@ -6,7 +6,7 @@ logging.basicConfig(filename='io.log', level=logging.INFO, format='%(asctime)s %
 
 headers = {
     # Request headers
-    'Ocp-Apim-Subscription-Key': 'd53e065901b9410a9ae56900ab16af7e',
+    'Ocp-Apim-Subscription-Key': keys.OCP_APIM_SUBSCRIPTION_KEY,
 }
 
 
