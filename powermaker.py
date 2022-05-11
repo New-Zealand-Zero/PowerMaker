@@ -32,6 +32,8 @@ while(True):
         override, suggested_IE = get_override()     
         now = datetime.now().time()
 
+        logging.info("%s %s %s %s" %(battery_charge < 80 , is_CPD_period(), now > time(1,0) , now < time(6,30)))
+
         # make decision based on current state
         if (override):
             #Manual override
@@ -68,14 +70,14 @@ while(True):
 
 
         #winter cpd dodging - charge up to 80% if spot price is <= spot price average
-        elif now > time(1,0) and now < time(5,0) and battery_charge < 80 and is_CPD_period():
-            print ("CPD CHARGING PERIOD")
-            if spot_price <= spot_price_avg:
-                print ("SPOT PRICE IS LESS THAN AVERAGE CHARGING")
+        elif now > time(1,0) and now < time(6,30) and battery_charge < 80 and is_CPD_period():
+            logging.info("CPD CHARGING PERIOD")
+            if spot_price <= spot_price_avg+2:
+                logging.info("SPOT PRICE IS LESS THAN AVERAGE CHARGING")
                 status="Importing - Winter Night Charging"
                 charge_from_grid(config.IE_MAX_RATE)
             else:
-                print ("SPOT PRICE IS MORE AVERAGE PAUSE")
+                logging.info("SPOT PRICE IS MORE AVERAGE PAUSE")
                 status="No I/# - Winter Night Charging spot price high"
 
         else: 

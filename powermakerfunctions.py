@@ -212,7 +212,7 @@ def get_spot_price_stats():
         spot_price_min=np.min(spot_prices)
         spot_price_max=np.max(spot_prices)
         import_price=np.quantile(spot_prices,config.IMPORT_QUANTILE)
-        export_price=np.quantile(spot_prices,config.EXPORT_QUANTILE)
+        export_price=np.quantile(spot_prices,config.EXPORT_QUANTILE)+.1
     else:
         spot_price_avg=0
         spot_price_min=0
@@ -422,7 +422,7 @@ def create_db_connection():
 
 def is_CPD_period():
     #Auora congestion period runs from roughly mid may to mid september
-    month = datetime.datetime.month()
+    month = datetime.now().month
     return month in [5,6,7,8,9]
 
 # update_override(False, None)
