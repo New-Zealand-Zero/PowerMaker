@@ -1,5 +1,5 @@
 ########### Python 3.2 #############
-import http.client, urllib.request, urllib.parse, urllib.error, base64, time, json, ast, utilfunctions
+import http.client, urllib.request, urllib.parse, urllib.error, base64, time, json, ast, utilfunctions, keys
 from datetime import datetime
 from pymodbus.constants import Defaults
 from pymodbus.constants import Endian
@@ -24,7 +24,7 @@ logging.basicConfig(filename='spot.log', level=logging.INFO, format='%(asctime)s
 
 headers = {
     # Request headers
-    'Ocp-Apim-Subscription-Key': 'd53e065901b9410a9ae56900ab16af7e',
+    'Ocp-Apim-Subscription-Key': keys.OCP_APIM_SUBSCRIPTION_KEY,
 }
 
 
