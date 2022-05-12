@@ -72,7 +72,7 @@ while(True):
         #winter cpd dodging - charge up to 80% if spot price is <= spot price average
         elif now > time(1,0) and now < time(6,30) and battery_charge < 80 and is_CPD_period():
             logging.info("CPD CHARGING PERIOD")
-            if spot_price <= spot_price_avg+2:
+            if spot_price <= spot_price_avg*1.1:
                 logging.info("SPOT PRICE IS LESS THAN AVERAGE CHARGING")
                 status="Importing - Winter Night Charging"
                 charge_from_grid(config.IE_MAX_RATE)
@@ -80,15 +80,20 @@ while(True):
                 logging.info("SPOT PRICE IS MORE AVERAGE PAUSE")
                 status="No I/# - Winter Night Charging spot price high"
 
+
         else: 
             #Stop any Importing or Exporting activity  
-            reset_to_default() 
-            if battery_low:
-                status = f"No I/E - Battery Low @ {battery_charge} %"
-            elif battery_full:
-                status = f"No I/E - Battery Ful @ {battery_charge} %"
+            if is_CPD_period() and spot_price <= spot_price_avg:
+                charge_from_grid(power_load) # if its the cpd period then run power load at average price when available to make sure batteries are not depleted for night time cpd periods
+                status = f"CPD Period: Gridpoint set to consumption @ {power_load} %"
             else:
-                status = f"No I/E - Battery OK @ {battery_charge} %"
+                reset_to_default() 
+                if battery_low:
+                    status = f"No I/E - Battery Low @ {battery_charge} %"
+                elif battery_full:
+                    status = f"No I/E - Battery Ful @ {battery_charge} %"
+                else:
+                    status = f"No I/E - Battery OK @ {battery_charge} %"
         
         actual_IE = get_grid_load()
         c.execute(f"INSERT INTO DataPoint (SpotPrice, AvgSpotPrice, SolarGeneration , PowerLoad , BatteryCharge , Status, ActualIE, SuggestedIE) VALUES ({spot_price}, {spot_price_avg}, {solar_generation}, {power_load}, {battery_charge}, '{status}', {actual_IE}, {suggested_IE})")       
