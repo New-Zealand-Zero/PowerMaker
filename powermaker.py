@@ -78,14 +78,14 @@ while(True):
                 charge_from_grid(config.IE_MAX_RATE)
             else:
                 logging.info("SPOT PRICE IS MORE AVERAGE PAUSE")
-                status="No I/# - Winter Night Charging spot price high"
+                status="Spot too high - Winter Night Charging"
 
 
         else: 
             #Stop any Importing or Exporting activity  
             if is_CPD_period() and spot_price <= spot_price_avg:
                 charge_from_grid(power_load) # if its the cpd period then run power load at average price when available to make sure batteries are not depleted for night time cpd periods
-                status = f"CPD Period: cover load @ {power_load} %"
+                status = f"CPD Period: covering load"
             else:
                 reset_to_default() 
                 if battery_low:
