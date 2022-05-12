@@ -85,7 +85,7 @@ while(True):
             #Stop any Importing or Exporting activity  
             if is_CPD_period() and spot_price <= spot_price_avg:
                 charge_from_grid(power_load) # if its the cpd period then run power load at average price when available to make sure batteries are not depleted for night time cpd periods
-                status = f"CPD Period: cover powerload @ {power_load} %"
+                status = f"CPD Period: cover load @ {power_load} %"
             else:
                 reset_to_default() 
                 if battery_low:
