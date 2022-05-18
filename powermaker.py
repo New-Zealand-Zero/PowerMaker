@@ -32,7 +32,7 @@ while(True):
         override, suggested_IE = get_override()     
         now = datetime.now().time()
 
-        logging.info("%s %s %s %s" %(battery_charge < 80 , is_CPD_period(), now > time(1,0) , now < time(6,30)))
+        #logging.info("%s %s %s %s" %(battery_charge < 80 , is_CPD_period(), now > time(1,0) , now < time(6,30)))
 
         # make decision based on current state
         if (override):
@@ -65,9 +65,8 @@ while(True):
         elif spot_price<= import_price and not battery_full:
             #import power from grid if price is less than calc export price
             status = "Importing - Spot price low"
-            suggested_IE = calc_charge_rate(spot_price,import_price,spot_price_min)
-            charge_from_grid(suggested_IE+power_load) # move to cover existing power consumption plus import 
-
+            suggested_IE = calc_charge_rate(spot_price,import_price,spot_price_min)+power_load # move to cover existing power consumption plus import 
+            charge_from_grid(suggested_IE) 
 
         #winter cpd dodging - charge up to 80% if spot price is <= spot price average
         elif now > time(1,0) and now < time(6,30) and battery_charge < 80 and is_CPD_period():
@@ -84,8 +83,14 @@ while(True):
         else: 
             #Stop any Importing or Exporting activity  
             if is_CPD_period() and spot_price <= spot_price_avg:
-                charge_from_grid(power_load) # if its the cpd period then run power load at average price when available to make sure batteries are not depleted for night time cpd periods
-                status = f"CPD Period: covering load"
+                if battery_charge > 80:
+                    suggested_IE = power_load*0.5
+                    charge_from_grid(suggested_IE)
+                    status = f"CPD Period: half covering" #if battery is above 80% use half battery and half load to leave some space for cheaper power
+                else:
+                    suggested_IE = power_load
+                    charge_from_grid(suggested_IE) # if its the cpd period then run power load at average price when available to make sure batteries are not depleted for night time cpd periods
+                    status = f"CPD Period: full covering"
             else:
                 reset_to_default() 
                 if battery_low:
