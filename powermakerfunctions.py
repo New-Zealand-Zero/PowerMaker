@@ -127,7 +127,7 @@ def charge_from_grid(rate_to_charge):
     if (config.PROD):
         client.write_register(2703, int(rate_to_charge*0.01 if rate_to_charge > 0 else 1000))
    
-    logging.info(f"Importing from Grid @ {rate_to_charge} KwH" )
+    logging.info(f"Importing from Grid @ {rate_to_charge/1000} kWh" )
     return
   
 def discharge_to_grid(rate_to_discharge):
@@ -135,7 +135,7 @@ def discharge_to_grid(rate_to_discharge):
     Keyword arguments: rate to discharge    
     """
   
-    logging.info(f"Suggested export to Grid @ {rate_to_discharge} watts" )
+    logging.info(f"Suggested export to Grid @ {rate_to_discharge/1000} kWh" )
     if (config.PROD):
         rate_to_discharge=int(rate_to_discharge*0.01)
         builder = BinaryPayloadBuilder(byteorder=Endian.Big, wordorder=Endian.Big)

@@ -32,8 +32,7 @@ while(True):
         override, suggested_IE = get_override()     
         now = datetime.now().time()
 
-        #logging.info("%s %s %s %s" %(battery_charge < 80 , is_CPD_period(), now > time(1,0) , now < time(6,30)))
-
+        logging.info("%s - battery charging ratio" %((100-battery_charge)/100))
         # make decision based on current state
         if (override):
             #Manual override
@@ -71,7 +70,7 @@ while(True):
         #winter cpd dodging - charge up to 80% if spot price is <= spot price average
         elif now > time(1,0) and now < time(6,30) and battery_charge < 80 and is_CPD_period():
             logging.info("CPD CHARGING PERIOD")
-            if spot_price <= spot_price_avg*1.1:
+            if spot_price <= spot_price_avg:
                 logging.info("SPOT PRICE IS LESS THAN AVERAGE CHARGING")
                 status="Importing - Winter Night Charging"
                 charge_from_grid(config.IE_MAX_RATE)
@@ -83,14 +82,11 @@ while(True):
         else: 
             #Stop any Importing or Exporting activity  
             if is_CPD_period() and spot_price <= spot_price_avg:
-                if battery_charge > 80:
-                    suggested_IE = power_load*0.5
-                    charge_from_grid(suggested_IE)
-                    status = f"CPD Period: half covering" #if battery is above 80% use half battery and half load to leave some space for cheaper power
-                else:
-                    suggested_IE = power_load
-                    charge_from_grid(suggested_IE) # if its the cpd period then run power load at average price when available to make sure batteries are not depleted for night time cpd periods
-                    status = f"CPD Period: full covering"
+                suggested_IE = power_load
+                if battery_charge > 50:
+                    suggested_IE = suggested_IE * ((100-battery_charge)/100) #take the inverse of the battery from the grid if battery more than half full
+                status = f"CPD: covering {suggested_IE}" 
+
             else:
                 reset_to_default() 
                 if battery_low:
