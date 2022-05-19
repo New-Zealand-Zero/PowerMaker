@@ -87,6 +87,7 @@ while(True):
                 if battery_charge > 50:
                     status = f"CPD: partial covering" 
                     suggested_IE = suggested_IE * ((100-battery_charge)/100) #take the inverse of the battery from the grid if battery more than half full
+                charge_from_grid(suggested_IE)
                 
 
             else:
