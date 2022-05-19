@@ -83,9 +83,11 @@ while(True):
             #Stop any Importing or Exporting activity  
             if is_CPD_period() and spot_price <= spot_price_avg:
                 suggested_IE = power_load
+                status = f"CPD: covering" 
                 if battery_charge > 50:
+                    status = f"CPD: partial covering" 
                     suggested_IE = suggested_IE * ((100-battery_charge)/100) #take the inverse of the battery from the grid if battery more than half full
-                status = f"CPD: covering {suggested_IE}" 
+                
 
             else:
                 reset_to_default() 
