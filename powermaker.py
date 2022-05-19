@@ -68,16 +68,16 @@ while(True):
             charge_from_grid(suggested_IE) 
 
         #winter cpd dodging - charge up to 80% if spot price is <= spot price average
-        elif now > time(1,0) and now < time(6,30) and battery_charge < 80 and is_CPD_period():
+        elif now > time(21,0) and now < time(22,30) and battery_charge < 80 and is_CPD_period():
             logging.info("CPD CHARGING PERIOD")
             if spot_price <= spot_price_avg:
                 logging.info("SPOT PRICE IS LESS THAN AVERAGE CHARGING")
-                status="Importing - Winter Night Charging"
-                charge_from_grid(config.IE_MAX_RATE)
+                rate_to_charge = config.IE_MAX_RATE * (100-battery_charge)/100 #slow down as battery gets more full
+                status = f"CPD Night Charge: {rate_to_charge}"
+                charge_from_grid(rate_to_charge)
             else:
                 logging.info("SPOT PRICE IS MORE AVERAGE PAUSE")
-                status="Spot too high - Winter Night Charging"
-
+                status="CPD Night Charge: Price High"
 
         else: 
             #Stop any Importing or Exporting activity  
