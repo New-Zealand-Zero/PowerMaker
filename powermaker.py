@@ -72,9 +72,9 @@ while(True):
             logging.info("CPD CHARGING PERIOD")
             if spot_price <= spot_price_avg:
                 logging.info("SPOT PRICE IS LESS THAN AVERAGE CHARGING")
-                rate_to_charge = config.IE_MAX_RATE * (100-battery_charge)/100 #slow down as battery gets more full
-                status = f"CPD Night Charge: {rate_to_charge}"
-                charge_from_grid(rate_to_charge)
+                suggested_IE = config.IE_MAX_RATE * (100-battery_charge)/100 #slow down as battery gets more full
+                status = f"CPD Night Charge: {suggested_IE}"
+                charge_from_grid(suggested_IE)
             else:
                 logging.info("SPOT PRICE IS MORE AVERAGE PAUSE")
                 status="CPD Night Charge: Price High"
