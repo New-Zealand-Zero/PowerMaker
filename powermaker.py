@@ -70,7 +70,7 @@ while(True):
         #winter cpd dodging - charge up to 80% if spot price is <= spot price average
         elif now > time(1,0) and now < time(6,30) and battery_charge < 80 and is_CPD_period():
             logging.info("CPD CHARGING PERIOD")
-            if spot_price <= spot_price_avg:
+            if spot_price <= spot_price_avg*1.2: #take up to 20% higher price than average to make sure these batteries have enough to cover morning cpd
                 logging.info("SPOT PRICE IS LESS THAN AVERAGE CHARGING")
                 suggested_IE = config.IE_MAX_RATE * (100-battery_charge)/100 #slow down as battery gets more full
                 status = f"CPD Night Charge: {suggested_IE}"
@@ -79,8 +79,7 @@ while(True):
                 logging.info("SPOT PRICE IS MORE AVERAGE PAUSE")
                 status="CPD Night Charge: Price High"
 
-        else: 
-            #Stop any Importing or Exporting activity  
+        else:   
             if is_CPD_period() and spot_price <= spot_price_avg:
                 suggested_IE = power_load
                 status = f"CPD: covering" 
