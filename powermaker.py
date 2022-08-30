@@ -68,7 +68,7 @@ while(True):
             charge_from_grid(suggested_IE) 
 
         #winter cpd dodging - charge up to 80% if spot price is <= spot price average
-        elif now > time(1,0) and now < time(6,30) and battery_charge < 80 and is_CPD_period():
+        elif now > time(1,0) and now < time(6,30) and battery_charge < 60 and is_CPD_period():
             logging.info("CPD CHARGING PERIOD")
             if spot_price <= spot_price_avg*1.2: #take up to 20% higher price than average to make sure these batteries have enough to cover morning cpd
                 logging.info("SPOT PRICE IS LESS THAN AVERAGE CHARGING")
