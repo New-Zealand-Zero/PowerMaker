@@ -71,7 +71,7 @@ while(True):
             status = "Importing - Spot price < min"
             suggested_IE = config.IE_MAX_RATE
             charge_from_grid(suggested_IE)
-        elif spot_price>export_price and not battery_low:
+        elif spot_price>export_price and spot_price > config.USE_GRID_PRICE and not battery_low:
             #export power to grid if price is greater than calc export price
             status = f"Exporting - Spot Price High"
             suggested_IE = calc_discharge_rate(spot_price,export_price,spot_price_max)
