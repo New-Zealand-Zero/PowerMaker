@@ -53,15 +53,15 @@ while(True):
         #High power use - conditions added to handle business case for substantial power consumption
         elif power_load >= config.HIGH_DEMAND_THRESHOLD:
             if spot_price <= config.USE_GRID_PRICE:
-                status = f"Price low demand high"
+                status = f"Price lower than battery cycle cost"
                 logging.info("SPOT PRICE low and demand high")
                 suggested_IE = config.IE_MAX_RATE
                 charge_from_grid(suggested_IE) #run all consumption from grid and keep batteries charged
             elif spot_price < spot_price_avg:
-                status = f"Price high demand high - covering: {power_load}"
+                status = f"Price lower than average: {power_load}"
                 charge_from_grid(power_load) #just cover power load
             else:
-                status = f"Price high demand high"
+                status = f"Price high run on batteries"
                 reset_to_default() # move to 100% battery power as price is too  high
 
     
