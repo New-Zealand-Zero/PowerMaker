@@ -31,6 +31,8 @@ from pymodbus.payload import BinaryPayloadBuilder, Endian, BinaryPayloadDecoder
 import numpy as np
 import matplotlib.pyplot as plt
 import pymysql
+import requests
+import traceback
 
 # Logging
 logging.basicConfig(level=logging.INFO, format=f'%(asctime)s {"PROD" if config.PROD else "TEST"} %(message)s') 
@@ -42,25 +44,65 @@ def get_spot_price():
     """return the latest power spotprice from OCP
      Keyword arguments: None
     """
+    # try:
+    #     spot_price =0
+    #     if (config.PROD):
+    #         now = datetime.now().strftime("%Y-%m-%dT%H:%M")
+    #         Defaults.Timeout = 25
+    #         Defaults.Retries = 5
+    #         params = urllib.parse.urlencode({
+    #                 '$filter': 'PointOfConnectionCode eq \'CML0331\'',
+    #                 '&filter': 'TradingDate eq datetime'+now+''
+    #         })
+    #         request_headers = {
+    #         'Ocp-Apim-Subscription-Key': config.OCP_APIM_SUBSCRIPTION_KEY
+    #         }
+    #         conn = http.client.HTTPSConnection('emi.azure-api.net')
+    #         conn.request("GET", "/real-time-prices/?%s" % params, "{body}", request_headers)
+    #         response = conn.getresponse()
+    #         data = response.read()
+            
+    #     else:
+    #         #generate test data
+    #         conn = create_db_connection()       
+    #         c = conn.cursor()
+    #         c.execute("SELECT SpotPrice from DataPoint where RecordID = (SELECT Max(RecordID) from DataPoint)")
+    #         row = c.fetchone()
+    #         c.close()
+    #         conn.close()
+    
+    #         spot_price = row[0] + float("{0:.5f}".format(random.uniform(-0.10001, 0.10001)))
+    #         if spot_price < 0:
+    #             spot_price *= -1     
+
     try:
-        spot_price =0
+        spot_price=0
         if (config.PROD):
-            now = datetime.now().strftime("%Y-%m-%dT%H:%M")
-            Defaults.Timeout = 25
-            Defaults.Retries = 5
-            params = urllib.parse.urlencode({
-                    '$filter': 'PointOfConnectionCode eq \'CML0331\'',
-                    '&filter': 'TradingDate eq datetime'+now+''
+            
+
+            r = requests.post('https://api.electricityinfo.co.nz/login/oauth2/token', json={
+                "grant_type": "client_credentials",
+                "client_id": config.WITS_CLIENT_ID,
+                "client_secret": config.WITS_CLIENT_SECRET
             })
-            request_headers = {
-            'Ocp-Apim-Subscription-Key': config.OCP_APIM_SUBSCRIPTION_KEY
-            }
-            conn = http.client.HTTPSConnection('emi.azure-api.net')
-            conn.request("GET", "/real-time-prices/?%s" % params, "{body}", request_headers)
-            response = conn.getresponse()
-            data = response.read()
+
+            access_token= r.json().get('access_token')
+
+
+            conn = http.client.HTTPSConnection("api.electricityinfo.co.nz")
+            headers = { 'accept': "application/json", 'Authorization':'Bearer %s' %access_token }
+
+
+            now = datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
+
+            conn.request("GET", "/api/market-prices/v1/schedules/RTP/prices?offset=0&nodes=%s&marketType=E&" %(config.PRICE_NODE), headers=headers)
+
+            res = conn.getresponse()
+            data = res.read()
+
             json_data = json.loads(data.decode('utf-8'))
-            spot_price = json_data[0]['DollarsPerMegawattHour']/1000 
+            spot_price = json_data['prices'][0]['price']/1000
+
         else:
             #generate test data
             conn = create_db_connection()       
@@ -74,11 +116,15 @@ def get_spot_price():
             if spot_price < 0:
                 spot_price *= -1     
 
+
     except Exception as e:
+        traceback.print_exc()
         raise NameError('SpotPriceUnavailable')
 
     logging.info(f"Spot price ${spot_price}")
-    return spot_price 
+    return spot_price
+
+    
     
 def get_battery_status():
     """return the battery charge and status
