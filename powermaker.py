@@ -49,6 +49,21 @@ while(True):
             #there is CPD active so immediately go into low export state
             status = "Exporting - CPD active"
             discharge_to_grid(config.IE_MIN_RATE*-1)
+
+        #High power use - conditions added to handle business case for substantial power consumption
+        elif power_load >= config.HIGH_DEMAND_THRESHOLD:
+            if spot_price <= config.USE_GRID_PRICE:
+                status = f"Price lower than battery cycle cost"
+                logging.info("SPOT PRICE low and demand high")
+                suggested_IE = config.IE_MAX_RATE
+                charge_from_grid(suggested_IE) #run all consumption from grid and keep batteries charged
+            elif spot_price < spot_price_avg:
+                status = f"Price lower than average: {power_load}"
+                charge_from_grid(power_load) #just cover power load
+            else:
+                status = f"Price high run on batteries"
+                reset_to_default() # move to 100% battery power as price is too  high
+
     
 
         elif spot_price<= config.LOW_PRICE_IMPORT and not battery_full:
@@ -56,7 +71,7 @@ while(True):
             status = "Importing - Spot price < min"
             suggested_IE = config.IE_MAX_RATE
             charge_from_grid(suggested_IE)
-        elif spot_price>export_price and not battery_low:
+        elif spot_price>export_price and spot_price > config.USE_GRID_PRICE and not battery_low:
             #export power to grid if price is greater than calc export price
             status = f"Exporting - Spot Price High"
             suggested_IE = calc_discharge_rate(spot_price,export_price,spot_price_max)
