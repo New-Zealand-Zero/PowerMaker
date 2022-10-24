@@ -17,7 +17,7 @@ from re import S
 import config
 
 # Importing modules
-from datetime import datetime, time # obtain and format dates and time
+from datetime import datetime, time, timedelta # obtain and format dates and time
 import urllib.request, urllib.parse, urllib.error # extensible library for opening URLs
 import http.client # classes which implement the client side of the HTTP and HTTPS protocols
 import json # JSON encoder and decoder
@@ -93,14 +93,18 @@ def get_spot_price():
             headers = { 'accept': "application/json", 'Authorization':'Bearer %s' %access_token }
 
 
-            now = datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
+            now = datetime.now() - timedelta(minutes=1)
+            now = now.strftime("%Y-%m-%dT%H:%M:%SZ")
 
             conn.request("GET", "/api/market-prices/v1/schedules/RTP/prices?offset=0&nodes=%s&marketType=E&" %(config.PRICE_NODE), headers=headers)
 
             res = conn.getresponse()
             data = res.read()
 
+
             json_data = json.loads(data.decode('utf-8'))
+
+            print (json_data)
             spot_price = json_data['prices'][0]['price']/1000
 
         else:
@@ -116,13 +120,14 @@ def get_spot_price():
             if spot_price < 0:
                 spot_price *= -1     
 
+        logging.info(f"Spot price ${spot_price}")
+        return spot_price
 
     except Exception as e:
         traceback.print_exc()
         raise NameError('SpotPriceUnavailable')
 
-    logging.info(f"Spot price ${spot_price}")
-    return spot_price
+    
 
     
     
