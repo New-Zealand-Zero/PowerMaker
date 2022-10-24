@@ -33,6 +33,9 @@ while(True):
         now = datetime.now().time()
 
         logging.info("%s - battery charging ratio" %((100-battery_charge)/100))
+        logging.info("----------------------")
+        logging.info("SPOT PRICE:%s LOW THREHOLD:%s" %(spot_price,config.LOW_PRICE_IMPORT))
+
         # make decision based on current state
         if (override):
             #Manual override
@@ -50,6 +53,12 @@ while(True):
             status = "Exporting - CPD active"
             discharge_to_grid(config.IE_MIN_RATE*-1)
 
+        elif spot_price<= config.LOW_PRICE_IMPORT and not battery_full:
+            #spot price less than Low price min import
+            status = "Importing - Spot price < min"
+            suggested_IE = config.IE_MAX_RATE
+            charge_from_grid(suggested_IE)
+
         #High power use - conditions added to handle business case for substantial power consumption
         elif power_load >= config.HIGH_DEMAND_THRESHOLD:
             if spot_price <= config.USE_GRID_PRICE:
@@ -65,12 +74,7 @@ while(True):
                 reset_to_default() # move to 100% battery power as price is too  high
 
     
-
-        elif spot_price<= config.LOW_PRICE_IMPORT and not battery_full:
-            #spot price less than Low price min import
-            status = "Importing - Spot price < min"
-            suggested_IE = config.IE_MAX_RATE
-            charge_from_grid(suggested_IE)
+        
         elif spot_price>export_price and spot_price > config.USE_GRID_PRICE and not battery_low:
             #export power to grid if price is greater than calc export price
             status = f"Exporting - Spot Price High"
