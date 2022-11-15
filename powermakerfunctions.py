@@ -140,9 +140,9 @@ def get_spot_price():
 
 
             json_data = json.loads(data.decode('utf-8'))
-            print ("------------------")
-            print (json_data)
-            print("===========")
+            # print ("------------------")
+            # print (json_data)
+            # print("===========")
             spot_price = json_data['prices'][0]['price']/1000
 
         else:
