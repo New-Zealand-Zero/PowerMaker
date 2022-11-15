@@ -88,23 +88,61 @@ def get_spot_price():
 
             access_token= r.json().get('access_token')
 
+            print (access_token)
 
             conn = http.client.HTTPSConnection("api.electricityinfo.co.nz")
             headers = { 'accept': "application/json", 'Authorization':'Bearer %s' %access_token }
 
 
-            now = datetime.now() - timedelta(minutes=1)
-            now = now.strftime("%Y-%m-%dT%H:%M:%SZ")
 
-            conn.request("GET", "/api/market-prices/v1/schedules/RTP/prices?offset=0&nodes=%s&marketType=E&" %(config.PRICE_NODE), headers=headers)
+            # conn.request("GET", "/api/market-prices/v1/schedules", headers=headers)
+
+
+            # res = conn.getresponse()
+            # data = res.read()
+
+            # print(data.decode("utf-8"),"\n")
+
+
+            # conn.request("GET", "", headers=headers)
+
+            # res = conn.getresponse()
+            # data = res.read()
+
+            # print(data.decode("utf-8"),"\n")
+
+
+            # # conn.request("GET", "/api/market-prices/v1/prices?schedules=RTP&marketType=R&nodes=%CML0331&from=&to=&back=&forward=&offset=", headers=headers)
+
+            # # res = conn.getresponse()
+            # # data = res.read()
+
+            # # print("this is the one \n",data.decode("utf-8"),"\n")
+
+
+          
+      
+
+
+            now = datetime.now() - timedelta(minutes=1)
+            now = now.strftime("%Y-%m-%dT%H:%M:%S")
+
+            # print("/api/market-prices/v1/schedules/RTP/prices?offset=0&nodes=%s&marketType=E&from=%s" %(config.PRICE_NODE,now))
+
+            # conn.request("GET", "/api/market-prices/v1/schedules/RTP/prices?offset=0&nodes=%s&marketType=E&from=%s" %(config.PRICE_NODE,now), headers=headers)
+
+            conn.request("GET", "/api/market-prices/v1/schedules/RTD/prices?marketType=E&nodes=%s" %(config.PRICE_NODE), headers=headers)
+
+
 
             res = conn.getresponse()
             data = res.read()
 
 
             json_data = json.loads(data.decode('utf-8'))
-
+            print ("------------------")
             print (json_data)
+            print("===========")
             spot_price = json_data['prices'][0]['price']/1000
 
         else:
