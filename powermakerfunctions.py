@@ -309,15 +309,16 @@ def get_spot_price_stats():
         import_price=0
         export_price=0
     
+    #New theory here is to always import if cheap enough but only export if MIN Margin is high enough
     # update the import price if less than min margin
-    if (import_price > (spot_price_avg - config.HALF_MIN_MARGIN)):
-        logging.info (f"calculated import price {import_price:.4f} below min margin updated to min")
-        import_price = spot_price_avg - config.HALF_MIN_MARGIN
+    # if (import_price > (spot_price_avg - config.HALF_MIN_MARGIN)):
+    #     logging.info (f"calculated import price {import_price:.4f} below min margin updated to min")
+    #     import_price = spot_price_avg - config.HALF_MIN_MARGIN
     
     # update the export price if less than if less than min margin
-    if (export_price < (spot_price_avg + config.HALF_MIN_MARGIN)):
+    if (export_price < (spot_price_avg + config.MIN_MARGIN)):
         logging.info (f"calculated export price {export_price:.4f} below min margin updated to min")
-        export_price = spot_price_avg + config.HALF_MIN_MARGIN
+        export_price = spot_price_avg + config.MIN_MARGIN
     
     logging.info(f"Average Spot Price {spot_price_avg:.4f} spot_price_min:{spot_price_min:.4f} spot_price_max: {spot_price_max:.4f} import_price:{import_price:.4f} export_price:{export_price:.4f}")
     return spot_price_avg, spot_price_min, spot_price_max, import_price, export_price

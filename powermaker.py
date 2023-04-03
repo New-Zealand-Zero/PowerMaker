@@ -126,7 +126,15 @@ while(True):
     except Exception as e:
         error = str(e)
         print (error)
-        if error == "SpotPriceUnavailable":                
+        if error == "SpotPriceDataEmpty":
+            status = "No Change to Spot Price"
+            logging.info(f"Status {status}" )
+            c.execute(f"INSERT INTO DataPoint (SpotPrice, AvgSpotPrice, SolarGeneration , PowerLoad , BatteryCharge , Status, ActualIE, SuggestedIE) VALUES (0, 0, 0, 0, 0, '{status}', 0, 0)")
+            conn.commit()
+            sleep(config.DELAY)
+            continue
+
+        elif error == "SpotPriceUnavailable":                
             status = "ERROR Spot Price Unavailable"
             logging.info(f"Status {status}" )
             c.execute(f"INSERT INTO DataPoint (SpotPrice, AvgSpotPrice, SolarGeneration , PowerLoad , BatteryCharge , Status, ActualIE, SuggestedIE) VALUES (0, 0, 0, 0, 0, '{status}', 0, 0)")
@@ -150,3 +158,4 @@ while(True):
         conn.commit()
     
     sleep(config.DELAY)
+
