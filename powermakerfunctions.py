@@ -13,6 +13,7 @@
 """
 
 # Importing configeration
+import math
 from re import S
 import config
 
@@ -41,7 +42,7 @@ if (config.PROD):
     client = ModbusClient('192.168.86.34', port='502', auto_open=True, auto_close=True)
 
 def get_spot_price():
-    """return the latest power spotprice from OCP
+    """return the latest power spot price from OCP
      Keyword arguments: None
     """
     # try:
@@ -93,16 +94,12 @@ def get_spot_price():
             conn = http.client.HTTPSConnection("api.electricityinfo.co.nz")
             headers = { 'accept': "application/json", 'Authorization':'Bearer %s' %access_token }
 
-
-
             # conn.request("GET", "/api/market-prices/v1/schedules", headers=headers)
-
 
             # res = conn.getresponse()
             # data = res.read()
 
             # print(data.decode("utf-8"),"\n")
-
 
             # conn.request("GET", "", headers=headers)
 
@@ -111,7 +108,6 @@ def get_spot_price():
 
             # print(data.decode("utf-8"),"\n")
 
-
             # # conn.request("GET", "/api/market-prices/v1/prices?schedules=RTP&marketType=R&nodes=%CML0331&from=&to=&back=&forward=&offset=", headers=headers)
 
             # # res = conn.getresponse()
@@ -119,30 +115,18 @@ def get_spot_price():
 
             # # print("this is the one \n",data.decode("utf-8"),"\n")
 
-
-          
-      
-
-
             now = datetime.now() - timedelta(minutes=1)
             now = now.strftime("%Y-%m-%dT%H:%M:%S")
 
             # print("/api/market-prices/v1/schedules/RTP/prices?offset=0&nodes=%s&marketType=E&from=%s" %(config.PRICE_NODE,now))
-
             # conn.request("GET", "/api/market-prices/v1/schedules/RTP/prices?offset=0&nodes=%s&marketType=E&from=%s" %(config.PRICE_NODE,now), headers=headers)
 
             conn.request("GET", "/api/market-prices/v1/schedules/RTD/prices?marketType=E&nodes=%s" %(config.PRICE_NODE), headers=headers)
 
-
-
             res = conn.getresponse()
             data = res.read()
 
-
             json_data = json.loads(data.decode('utf-8'))
-            # print ("------------------")
-            # print (json_data)
-            # print("===========")
             spot_price = json_data['prices'][0]['price']/1000
 
         else:
@@ -170,8 +154,9 @@ def get_spot_price():
     
     
 def get_battery_status():
-    """return the battery charge and status
-     Keyword arguments: None
+    """
+    return the battery charge and status
+    Keyword arguments: None
     """
     if (config.PROD):  
         result = client.read_holding_registers(843)
@@ -215,15 +200,15 @@ def charge_from_grid(rate_to_charge):
 
     if (config.PROD):
         client.write_register(2703, int(rate_to_charge*0.01 if rate_to_charge > 0 else 1000))
-   
+
     logging.info(f"Importing from Grid @ {rate_to_charge/1000} kWh" )
     return
-  
+
 def discharge_to_grid(rate_to_discharge):
     """ export power to grid
     Keyword arguments: rate to discharge    
     """
-  
+
     logging.info(f"Suggested export to Grid @ {rate_to_discharge/1000} kWh" )
     if (config.PROD):
         rate_to_discharge=int(rate_to_discharge*0.01)
@@ -275,7 +260,7 @@ def get_actual_IE():
         power_load += client.read_holding_registers(2602).registers[0]
     else:
         power_load= random.randint(-config.IE_MAX_RATE, config.IE_MAX_RATE)
- 
+
     logging.info(f"Actual IE {power_load}")
     return power_load
 
@@ -337,7 +322,6 @@ def get_status():
     return row
 
 def get_consumption():
-    
     if (config.PROD):
         l1 = client.read_holding_registers(817).registers[0]
         l2 = client.read_holding_registers(818).registers[0]
@@ -349,7 +333,6 @@ def get_consumption():
     return consumption
 
 def get_grid_load():
-    
     if (config.PROD):
         l1 = client.read_holding_registers(820).registers[0]
         l2 = client.read_holding_registers(821).registers[0]
@@ -370,19 +353,18 @@ def get_override():
     row = c.fetchone()
     c.close()
     conn.close()
-   
-   
+
     if (row[0] == "N"):
-        logging.info(f"No manual overide")
+        logging.info(f"No manual override")
         return False, 0
     else:
-        logging.info(f"Manual overide")
+        logging.info(f"Manual override")
         return True, int(row[0])
 
-def update_override(overide, rate):
+def update_override(override, rate):
     conn = create_db_connection()
     c = conn.cursor()
-    if (overide):
+    if (override):
         c.execute(f"UPDATE Config SET ConfigValue = {rate} where ConfigID = 'Override'")
     else:
         c.execute(f"UPDATE Config SET ConfigValue = 'N' where ConfigID = 'Override'")
@@ -514,6 +496,103 @@ def is_CPD_period():
     #Auora congestion period runs from roughly mid may to mid september
     month = datetime.now().month
     return month in [5,6,7,8,9]
+
+def handle_manual_override(status, suggested_IE):
+    """Handle manual override"""
+    if suggested_IE < 0:
+        status = "Exporting - Manual Override"
+        discharge_to_grid(suggested_IE)
+    elif suggested_IE > 0:
+        status = "Importing - Manual Override"
+        charge_from_grid(suggested_IE)
+    else:
+        status = "No I/E - Manual Override"
+        reset_to_default()
+
+
+def handle_cpd_event(status, battery_charge):
+    """Handle CPD event, prioritize selling power"""
+    export_rate = math.log2(battery_charge + 1)  # Calculate log base 2 of battery_charge
+    status = "Exporting - CPD active"
+    logging.info(f"CPD active - Exporting {export_rate} with status {status}")
+    discharge_to_grid(export_rate)
+
+
+def handle_low_spot_price(status, suggested_IE):
+    """Handle low spot price"""
+    status = "Importing - Spot price < min"
+    suggested_IE = config.IE_MAX_RATE
+    charge_from_grid(suggested_IE)
+
+
+def handle_high_power_demand(status, spot_price, spot_price_avg, power_load, suggested_IE):
+    """Handle high power demand"""
+    if spot_price <= config.USE_GRID_PRICE:
+        status = "Price lower than battery cycle cost"
+        logging.info("SPOT PRICE low and demand high")
+        suggested_IE = config.IE_MAX_RATE
+        charge_from_grid(suggested_IE)
+    elif spot_price < spot_price_avg:
+        status = f"Price lower than average: {power_load}"
+        charge_from_grid(power_load)
+    else:
+        status = "Price high run on batteries"
+        reset_to_default()
+
+
+def handle_export_to_grid(status, spot_price, export_price, spot_price_max):
+    """Handle exporting power to grid"""
+    status = "Exporting - Spot Price High"
+    suggested_IE = calc_discharge_rate(spot_price, export_price, spot_price_max)
+    discharge_to_grid(suggested_IE)
+
+
+def handle_import_from_grid(status, spot_price, import_price, spot_price_min, power_load):
+    """Handle importing power from grid"""
+    status = "Importing - Spot price low"
+    suggested_IE = calc_charge_rate(spot_price, import_price, spot_price_min) + power_load
+    charge_from_grid(suggested_IE)
+
+
+def handle_morning_cpd_period(status, spot_price, spot_price_avg, suggested_IE):
+    """Handle morning CPD period"""
+    logging.info("CPD CHARGING PERIOD")
+    if spot_price <= spot_price_avg:
+        logging.info("SPOT PRICE IS LESS THAN AVERAGE CHARGING")
+        suggested_IE = config.IE_MAX_RATE * (100 - battery_charge) / 100
+        status = f"CPD Night Charge: {suggested_IE}"
+        charge_from_grid(suggested_IE)
+    else:
+        logging.info("SPOT PRICE IS MORE AVERAGE PAUSE")
+        status = "CPD Night Charge: Price High"
+
+
+def handle_default_case(
+    status, battery_charge, battery_low, battery_full, spot_price, spot_price_avg, power_load
+):
+    """Handle default case"""
+    if is_CPD_period() and spot_price <= spot_price_avg * 1:
+        suggested_IE = power_load
+        status = "CPD: covering"
+        if battery_charge > 50:
+            status = "CPD: partial covering"
+            suggested_IE = suggested_IE * ((100 - battery_charge) / 100)  # Take the inverse of the battery from the grid if battery is more than half full
+        charge_from_grid(suggested_IE)
+
+    else:
+        reset_to_default()
+        if battery_low:
+            status = f"No I/E - Battery Low @ {battery_charge} %"
+        elif battery_full:
+            status = f"No I/E - Battery Full @ {battery_charge} %"
+        else:
+            status = f"No I/E - Battery OK @ {battery_charge} %"
+
+def handle_exception(e):
+    error = str(e)
+    status = f"ERROR unable to stop I/E {error}"
+    logging.error(status)
+
 
 # update_override(False, None)
 # print(get_override())
