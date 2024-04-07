@@ -29,11 +29,6 @@ from powermakerfunctions import (
     is_CPD,
     get_battery_status,
     get_override,
-    calc_discharge_rate,
-    calc_charge_rate,
-    discharge_to_grid,
-    charge_from_grid,
-    reset_to_default,
     get_grid_load,
     is_CPD_period,
 )
@@ -139,94 +134,3 @@ def main():
             conn.commit()
             sleep(config.DELAY)
 
-""" Helper Functions, can be moved to a separate file """
-
-# def handle_manual_override(status, suggested_IE):
-#     """Handle manual override"""
-#     if suggested_IE < 0:
-#         status = "Exporting - Manual Override"
-#         discharge_to_grid(suggested_IE)
-#     elif suggested_IE > 0:
-#         status = "Importing - Manual Override"
-#         charge_from_grid(suggested_IE)
-#     else:
-#         status = "No I/E - Manual Override"
-#         reset_to_default()
-
-
-# def handle_cpd_event(status, battery_charge):
-#     """Handle CPD event, prioritize selling power"""
-#     export_rate = math.log2(battery_charge + 1)  # Calculate log base 2 of battery_charge
-#     status = "Exporting - CPD active"
-#     discharge_to_grid(export_rate)
-
-
-# def handle_low_spot_price(status, suggested_IE):
-#     """Handle low spot price"""
-#     status = "Importing - Spot price < min"
-#     suggested_IE = config.IE_MAX_RATE
-#     charge_from_grid(suggested_IE)
-
-
-# def handle_high_power_demand(status, spot_price, spot_price_avg, power_load, suggested_IE):
-#     """Handle high power demand"""
-#     if spot_price <= config.USE_GRID_PRICE:
-#         status = "Price lower than battery cycle cost"
-#         logging.info("SPOT PRICE low and demand high")
-#         suggested_IE = config.IE_MAX_RATE
-#         charge_from_grid(suggested_IE)
-#     elif spot_price < spot_price_avg:
-#         status = f"Price lower than average: {power_load}"
-#         charge_from_grid(power_load)
-#     else:
-#         status = "Price high run on batteries"
-#         reset_to_default()
-
-
-# def handle_export_to_grid(status, spot_price, export_price, spot_price_max):
-#     """Handle exporting power to grid"""
-#     status = "Exporting - Spot Price High"
-#     suggested_IE = calc_discharge_rate(spot_price, export_price, spot_price_max)
-#     discharge_to_grid(suggested_IE)
-
-
-# def handle_import_from_grid(status, spot_price, import_price, spot_price_min, power_load):
-#     """Handle importing power from grid"""
-#     status = "Importing - Spot price low"
-#     suggested_IE = calc_charge_rate(spot_price, import_price, spot_price_min) + power_load
-#     charge_from_grid(suggested_IE)
-
-
-# def handle_morning_cpd_period(status, spot_price, spot_price_avg, suggested_IE):
-#     """Handle morning CPD period"""
-#     logging.info("CPD CHARGING PERIOD")
-#     if spot_price <= spot_price_avg:
-#         logging.info("SPOT PRICE IS LESS THAN AVERAGE CHARGING")
-#         suggested_IE = config.IE_MAX_RATE * (100 - battery_charge) / 100
-#         status = f"CPD Night Charge: {suggested_IE}"
-#         charge_from_grid(suggested_IE)
-#     else:
-#         logging.info("SPOT PRICE IS MORE AVERAGE PAUSE")
-#         status = "CPD Night Charge: Price High"
-
-
-# def handle_default_case(
-#     status, battery_charge, battery_low, battery_full, spot_price, spot_price_avg, power_load
-# ):
-#     """Handle default case"""
-#     if is_CPD_period() and spot_price <= spot_price_avg * 1:
-#         suggested_IE = power_load
-#         status = "CPD: covering"
-#         if battery_charge > 50:
-#             status = "CPD: partial covering"
-#             suggested_IE = suggested_IE * ((100 - battery_charge) / 100)  # Take the inverse of the battery from the grid if battery is more than half full
-#         charge_from_grid(suggested_IE)
-
-#     else:
-#         reset_to_default()
-#         if battery_low:
-#             status = f"No I/E - Battery Low @ {battery_charge} %"
-#         elif battery_full:
-#             status = f"No I/E - Battery Full @ {battery_charge} %"
-#         else:
-#             status = f"No I/E - Battery OK @ {battery_charge} %"
