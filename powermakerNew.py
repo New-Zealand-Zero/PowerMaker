@@ -8,7 +8,6 @@ export power from the battery to the grid, or remain idle based on various syste
 
 from datetime import time, datetime
 import logging
-import math
 from time import sleep
 import config
 from powermakerfunctions import (
@@ -38,7 +37,6 @@ logging.basicConfig(
     level=logging.INFO,
     format=f"%(asctime)s {'PROD' if config.PROD else 'TEST'} %(message)s",
 )
-
 
 def main():
     """Main control loop"""
@@ -70,7 +68,6 @@ def main():
                 "SPOT PRICE:%s LOW THRESHOLD:%s", spot_price, config.LOW_PRICE_IMPORT
             )
 
-            # Make decision based on current state
             if override:
                 # Manual override
                 handle_manual_override(status, suggested_IE)
@@ -85,11 +82,7 @@ def main():
                 handle_high_power_demand(
                     status, spot_price, spot_price_avg, power_load, suggested_IE
                 )
-            elif (
-                spot_price > export_price
-                and spot_price > config.USE_GRID_PRICE
-                and not battery_low
-            ):
+            elif spot_price > export_price and spot_price > config.USE_GRID_PRICE and not battery_low:
                 # Export power to grid
                 handle_export_to_grid(status, spot_price, export_price, spot_price_max)
             elif spot_price <= import_price and not battery_full:
@@ -97,16 +90,14 @@ def main():
                 handle_import_from_grid(
                     status, spot_price, import_price, spot_price_min, power_load
                 )
-            elif (
-                now > time(1, 0)
-                and now < time(6, 30)
-                and battery_charge < 60
-                and is_CPD_period()
-            ):
-                # Morning CPD period
+            
+            # Check with Mike if we need to double check the times for the CPD period
+            elif now > time(1, 0) and now < time(6, 30) and battery_charge < 60 and is_CPD_period():
+                # Morning CPD period between 1:00 AM and 6:30 AM
                 handle_morning_cpd_period(
-                    status, spot_price, spot_price_avg, suggested_IE
+                    status, spot_price, spot_price_avg, suggested_IE, battery_charge
                 )
+        
             else:
                 # Default case
                 handle_default_case(
@@ -133,4 +124,3 @@ def main():
         finally:
             conn.commit()
             sleep(config.DELAY)
-
