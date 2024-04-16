@@ -1,9 +1,24 @@
 #!/usr/bin/env python3
 
 """
+
 This code is a control loop for a battery energy storage system.
 It makes decisions on whether to import power from the grid to charge the battery,
 export power from the battery to the grid, or remain idle based on various system states.
+
+Objectives:
+[] Utilize battery cycles to get largest ROI on battery investment
+[] Figure out average cost of energy stored - grid v solar and 
+    analyse cost + wear and tear v value.
+
+Logic to add:
+[] If powers cheep, and expected to get expensive buy a lot.
+
+Info:
+CPD - Local lines
+Spot price is a National price
+130kva line connection at forest lodge
+
 """
 
 from datetime import time, datetime
@@ -124,3 +139,6 @@ def main():
         finally:
             conn.commit()
             sleep(config.DELAY)
+
+if __name__ == "__main__":
+    main()
