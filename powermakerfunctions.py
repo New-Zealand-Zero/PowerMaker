@@ -27,7 +27,7 @@ import traceback
 logging.basicConfig(level=logging.INFO, format=f'%(asctime)s {"PROD" if config.PROD else "TEST"} %(message)s') 
 
 if (config.PROD):
-    client = ModbusClient('192.168.86.34', port='502', auto_open=True, auto_close=True)
+    client = ModbusClient('192.168.10.30', port='502', auto_open=True, auto_close=True)
 
 """ 
 SPOT PRICE FUNCTIONS
