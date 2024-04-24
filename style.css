@@ -1,4 +1,19 @@
 header {
+ display: flex;
+ flex: 1;
+ justify-content: center;
+ align-items: center;
+}
+
+main {
+ display: flex;
+ flex: 1;
+ justify-content: center;
+ align-items: center;
+}
+
+footer {
+ display: flex;
  flex: 1;
  justify-content: center;
  align-items: center;
