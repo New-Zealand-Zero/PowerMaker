@@ -579,6 +579,7 @@ def handle_default_case(
 ):
     """Handle default case"""
     if is_CPD_period() and spot_price <= spot_price_avg * 1:
+        logging.info("Handling default: CPD PERIOD")
         suggested_IE = power_load
         status = "CPD: covering"
         if battery_charge > 50:
@@ -587,6 +588,7 @@ def handle_default_case(
         charge_from_grid(suggested_IE)
 
     else:
+        logging.info("Handling default: resetting")
         reset_to_default()
         if battery_low:
             status = f"No I/E - Battery Low @ {battery_charge} %"
