@@ -51,7 +51,10 @@ while(True):
         elif cdp:
             #there is CPD active so immediately go into low export state
             status = "Exporting - CPD active"
-            discharge_to_grid(config.IE_MIN_RATE*-1)
+            # discharge_to_grid(config.IE_MIN_RATE*-1)
+            export_rate = math.log2(battery_charge + 1)  # Calculate log base 2 of battery_charge
+            logging.info(f"CPD active - Exporting {export_rate} with status {status}")
+            discharge_to_grid(export_rate)
 
         elif spot_price<= config.LOW_PRICE_IMPORT and not battery_full:
             #spot price less than Low price min import
