@@ -86,29 +86,29 @@ def main():
             if override:
                 # Manual override
                 logging.info(f"Handling manual override\n")
-                handle_manual_override(status, suggested_IE)
+                status = handle_manual_override(status, suggested_IE)
             elif cdp:
                 # CPD event active, prioritize selling power
                 logging.info(f"Handling cpd event\n")
-                handle_cpd_event(status, battery_charge)
+                status = handle_cpd_event(status, battery_charge)
             elif spot_price <= config.LOW_PRICE_IMPORT and not battery_full:
                 # Spot price lower than low price threshold
                 logging.info(f"Handling handle_low_spot_price\n")
-                handle_low_spot_price(status, suggested_IE)
+                status = handle_low_spot_price(status, suggested_IE)
             elif power_load >= config.HIGH_DEMAND_THRESHOLD:
                 # High power demand
                 logging.info(f"Handling high power demand\n")
-                handle_high_power_demand(
+                status = handle_high_power_demand(
                     status, spot_price, spot_price_avg, power_load, suggested_IE
                 )
             elif spot_price > export_price and spot_price > config.USE_GRID_PRICE and not battery_low:
                 # Export power to grid
                 logging.info(f"Handling spot_price > export_price and spot_price > config.USE_GRID_PRICE and not battery_low\n")
-                handle_export_to_grid(status, spot_price, export_price, spot_price_max)
+                status = handle_export_to_grid(status, spot_price, export_price, spot_price_max)
             elif spot_price <= import_price and not battery_full:
                 # Import power from grid
                 logging.info(f"Handling spot_price <= import_price and not battery_full\n")
-                handle_import_from_grid(
+                status = handle_import_from_grid(
                     status, spot_price, import_price, spot_price_min, power_load
                 )
             
@@ -116,14 +116,14 @@ def main():
             elif now > time(1, 0) and now < time(6, 30) and battery_charge < 60 and is_CPD_period():
                 # Morning CPD period between 1:00 AM and 6:30 AM
                 logging.info(f"Handling morning cpd period\n")
-                handle_morning_cpd_period(
+                status = handle_morning_cpd_period(
                     status, spot_price, spot_price_avg, suggested_IE, battery_charge
                 )
         
             else:
                 # Default case
                 logging.info(f"Handling default case\n")
-                handle_default_case(
+                status = handle_default_case(
                     status,
                     battery_charge,
                     battery_low,
@@ -135,7 +135,6 @@ def main():
 
             # Log the current state and decision
             actual_IE = get_grid_load()
-            logging.info(f"Logic not being caught\n")
             logging.info(f"Status {status}\n")
             cursor.execute(
                 f"INSERT INTO DataPoint (SpotPrice, AvgSpotPrice, SolarGeneration, PowerLoad, BatteryCharge, Status, ActualIE, SuggestedIE) VALUES ({spot_price}, {spot_price_avg}, {solar_generation}, {power_load}, {battery_charge}, '{status}', {actual_IE}, {suggested_IE})"
