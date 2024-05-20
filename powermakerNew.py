@@ -142,7 +142,7 @@ def main():
             conn.commit()
 
         except Exception as e:
-            handle_exception(e, cursor, conn)
+            status = handle_exception(e, cursor, conn)
 
         finally:
             conn.commit()

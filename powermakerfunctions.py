@@ -600,5 +600,40 @@ def handle_default_case(
 
 def handle_exception(e):
     error = str(e)
-    status = f"ERROR unable to stop I/E {error}"
-    logging.error(status)
+    print(error)
+    if error == "SpotPriceDataEmpty":
+        status = "No Change to Spot Price"
+        logging.info(f"Status {status}")
+        c.execute("INSERT INTO DataPoint (SpotPrice, AvgSpotPrice, SolarGeneration, PowerLoad, BatteryCharge, Status, ActualIE, SuggestedIE) VALUES (0, 0, 0, 0, 0, ?, 0, 0)", (status,))
+        conn.commit()
+        sleep(config.DELAY)
+        return status  # Indicate that the exception was handled and continue the loop
+
+    elif error == "SpotPriceUnavailable":                
+        status = "ERROR Spot Price Unavailable"
+        logging.info(f"Status {status}")
+        c.execute("INSERT INTO DataPoint (SpotPrice, AvgSpotPrice, SolarGeneration, PowerLoad, BatteryCharge, Status, ActualIE, SuggestedIE) VALUES (0, 0, 0, 0, 0, ?, 0, 0)", (status,))
+        conn.commit()
+        return status
+
+    elif error == "DatabaseUnavailable":                
+        status = "Database Unavailable"
+        logging.info(f"Status {status}")
+        c.execute("INSERT INTO DataPoint (SpotPrice, AvgSpotPrice, SolarGeneration, PowerLoad, BatteryCharge, Status, ActualIE, SuggestedIE) VALUES (0, 0, 0, 0, 0, ?, 0, 0)", (status,))
+        conn.commit()
+        return status
+
+    # Try and stop all I/E as an exception has occurred
+    try:
+        reset_to_default()
+        status = "ERROR occurred I/E has been stopped"
+        return status
+    except Exception as inner_e:
+        inner_error = str(inner_e)
+        status = f"ERROR unable to stop I/E {inner_error}"
+
+    logging.info(f"Status {status} \n")
+    c.execute("INSERT INTO DataPoint (SpotPrice, AvgSpotPrice, SolarGeneration, PowerLoad, BatteryCharge, Status, ActualIE, SuggestedIE) VALUES (0, 0, 0, 0, 0, ?, 0, 0)", (status,))
+    conn.commit()
+    
+    return status
