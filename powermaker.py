@@ -127,6 +127,9 @@ while(True):
         conn.commit()
 
     except Exception as e:
+        # When exeption happens make sure discharge sets to zero
+        # As we don't know what the price is doing and can get stung with high prices
+        # Prices
         error = str(e)
         print (error)
         if error == "SpotPriceDataEmpty":

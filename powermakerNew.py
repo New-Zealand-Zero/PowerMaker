@@ -45,6 +45,7 @@ from powermakerfunctions import (
     get_override,
     get_grid_load,
     is_CPD_period,
+    reset_to_default,
 )
 
 # Configure logging
@@ -142,11 +143,54 @@ def main():
             conn.commit()
 
         except Exception as e:
-            status = handle_exception(e, cursor, conn)
+            
+            """ 
+            When exception happens make sure discharge sets to zero
+            As we don't know what the price is doing and can get
+            stung with high prices
+            """
+            error = str(e)
+            print (error)
+            if error == "SpotPriceDataEmpty":
+                status = "No Change to Spot Price"
+                logging.info(f"Status {status}" )
+                c.execute(f"INSERT INTO DataPoint (SpotPrice, AvgSpotPrice, SolarGeneration , PowerLoad , BatteryCharge , Status, ActualIE, SuggestedIE) VALUES (0, 0, 0, 0, 0, '{status}', 0, 0)")
+                conn.commit()
+                reset_to_default()
+                sleep(config.DELAY)
+                continue
+
+            elif error == "SpotPriceUnavailable":                
+                status = "ERROR Spot Price Unavailable"
+                logging.info(f"Status {status}" )
+                c.execute(f"INSERT INTO DataPoint (SpotPrice, AvgSpotPrice, SolarGeneration , PowerLoad , BatteryCharge , Status, ActualIE, SuggestedIE) VALUES (0, 0, 0, 0, 0, '{status}', 0, 0)")
+                reset_to_default()
+                conn.commit()
+                continue
+
+            elif error == "DatabaseUnavailable":                
+                status = "Database Unavailable"
+                logging.info(f"Status {status}" )
+                c.execute(f"INSERT INTO DataPoint (SpotPrice, AvgSpotPrice, SolarGeneration , PowerLoad , BatteryCharge , Status, ActualIE, SuggestedIE) VALUES (0, 0, 0, 0, 0, '{status}', 0, 0)")
+                conn.commit()
+                continue
+        
+            #try and stop all I/E as an exception has occurred
+            try:
+                reset_to_default()
+                status = "ERROR occurred I/E has been stopped"
+            except Exception as e:
+                error = str(e)
+                status = f"ERROR unable to stop I/E"
+
+            logging.info(f"Status {status} \n" )
+            c.execute(f"INSERT INTO DataPoint (SpotPrice, AvgSpotPrice, SolarGeneration , PowerLoad , BatteryCharge , Status, ActualIE, SuggestedIE) VALUES (0, 0, 0, 0, 0, '{status}', 0, 0)")
+            conn.commit()
 
         finally:
             conn.commit()
             sleep(config.DELAY)
+            continue     
 
 if __name__ == "__main__":
     main()
