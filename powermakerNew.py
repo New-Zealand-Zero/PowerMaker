@@ -33,7 +33,6 @@ from powermakerfunctions import (
     get_existing_load,
     handle_cpd_event,
     handle_default_case,
-    handle_exception,
     handle_export_to_grid,
     handle_high_power_demand,
     handle_import_from_grid,
