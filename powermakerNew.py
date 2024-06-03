@@ -26,6 +26,7 @@ import logging
 from time import sleep
 import config
 from powermakerfunctions import (
+    adjust_low_price_threshold,
     create_db_connection,
     get_spot_price,
     get_spot_price_stats,
@@ -73,9 +74,14 @@ def main():
             solar_generation = get_solar_generation()
             power_load = get_existing_load()
             cdp = is_CPD()
+
+            # Battery info
             battery_charge, battery_low, battery_full = get_battery_status()
+            low_price_threshold = adjust_low_price_threshold(battery_charge)
+
             override, suggested_IE = get_override()
             now = datetime.now().time()
+            
 
             logging.info("%s - battery charging ratio", (100 - battery_charge) / 100)
             logging.info("----------------------")
@@ -105,6 +111,19 @@ def main():
                 # Export power to grid
                 logging.info(f"Handling spot_price > export_price and spot_price > config.USE_GRID_PRICE and not battery_low\n")
                 status = handle_export_to_grid(status, spot_price, export_price, spot_price_max)
+            
+            elif spot_price <= import_price and not battery_full:
+                # Import power from grid
+                logging.info(f"Handling spot_price <= import_price and not battery_full\n")
+                status = handle_import_from_grid(
+                    status, spot_price, import_price, spot_price_min, power_load
+                )
+                
+            elif spot_price <= low_price_threshold and not battery_full:
+                # Spot price lower than low price threshold
+                logging.info(f"Handling handle_low_spot_price\n")
+                status = handle_low_spot_price(status, suggested_IE)
+
             elif spot_price <= import_price and not battery_full:
                 # Import power from grid
                 logging.info(f"Handling spot_price <= import_price and not battery_full\n")

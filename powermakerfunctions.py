@@ -118,6 +118,7 @@ def get_spot_price():
             data = res.read()
 
             json_data = json.loads(data.decode('utf-8'))
+            # TODO: Check what nodes data this is
             spot_price = json_data['prices'][0]['price']/1000
 
         else:
@@ -295,6 +296,19 @@ def handle_import_from_grid(status, spot_price, import_price, spot_price_min, po
     charge_from_grid(suggested_IE)
     return status
 
+def adjust_low_price_threshold(battery_charge):
+    """
+    Adjust the LOW_PRICE_IMPORT threshold based on the battery charge level.
+    When the battery charge is low, increase the threshold to prioritize importing power.
+    When the battery charge is high, decrease the threshold to prioritize exporting power.
+    """
+    if battery_charge < 20:
+        return config.LOW_PRICE_IMPORT + 0.2
+    elif battery_charge > 80:
+        return config.LOW_PRICE_IMPORT - 0.2
+    else:
+        return config.LOW_PRICE_IMPORT
+    
 """ 
 SOLAR FUNCTIONS
 """
