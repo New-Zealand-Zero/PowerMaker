@@ -32,7 +32,7 @@ if (config.PROD):
 """ 
 SPOT PRICE FUNCTIONS
 """
-def get_spot_price():
+def get_spot_price(datetimestamp = datetime(2023,1,1,0,0,0)):
     """return the latest power spot price from OCP
      Keyword arguments: None
     """
@@ -120,7 +120,20 @@ def get_spot_price():
             json_data = json.loads(data.decode('utf-8'))
             # TODO: Check what nodes data this is
             spot_price = json_data['prices'][0]['price']/1000
-
+        
+        # Added loop to read from a particular set of historic spot data for counterfactual testing
+        elif (config.VBATTERY):
+            # Get spot price from the current timestamp being simulated
+            conn = create_db_connection()       
+            c = conn.cursor()
+            print("SELECT DollarsPerMegaWattHour from historic_spot where PublishDateTime < '"+datetime.strftime(datetimestamp,"%Y-%m-%dT%H:%M:%S")+"'")
+            c.execute("SELECT DollarsPerMegaWattHour from historic_spot where PublishDateTime = (SELECT Max(PublishDateTime) from historic_spot where PublishDateTime < '"+datetime.strftime(datetimestamp,"%Y-%m-%dT%H:%M:%S")+"')")
+            row = c.fetchone()
+            print(row)
+            c.close()
+            conn.close()
+            
+            spot_price = row[0]
         else:
             #generate test data
             conn = create_db_connection()       
@@ -141,13 +154,18 @@ def get_spot_price():
         traceback.print_exc()
         raise NameError('SpotPriceUnavailable')  
 
-def get_spot_price_stats():
+def get_spot_price_stats(datetimestamp = datetime(2023,1,1,0,0,0)):
     """return average spot price data
     Keyword arguments: None
     """  
     conn = create_db_connection()
     c = conn.cursor()
-    c.execute("SELECT SpotPrice from DataPoint where Timestamp > now() - interval 5 day AND SpotPrice and LEFT(status,5) <> 'ERROR'")
+    
+    if not(config.VBATTERY):
+        c.execute("SELECT SpotPrice from DataPoint where Timestamp > now() - interval 5 day AND SpotPrice and LEFT(status,5) <> 'ERROR'")
+    elif config.VBATTERY:
+        c.execute("SELECT DollarsPerMegaWattHour from historic_spot where PublishDateTime < '"+datetime.strftime(datetimestamp,"%Y-%m-%dT%H:%M:%S")+"'")
+        
     result = c.fetchall()
     c.close()
     conn.close()
@@ -185,17 +203,17 @@ def get_spot_price_stats():
     logging.info(f"Average Spot Price {spot_price_avg:.4f} spot_price_min:{spot_price_min:.4f} spot_price_max: {spot_price_max:.4f} import_price:{import_price:.4f} export_price:{export_price:.4f}")
     return spot_price_avg, spot_price_min, spot_price_max, import_price, export_price
 
-def handle_low_spot_price(status, suggested_IE):
+def handle_low_spot_price(status, suggested_IE, virtual_battery = []):
     """Handle low spot price"""
     status = "Importing - Spot price < min"
     suggested_IE = config.IE_MAX_RATE
-    charge_from_grid(suggested_IE)
+    charge_from_grid(suggested_IE, virtual_battery = virtual_battery)
     return status
 
 """
 CONTROL PERIOD STATUS FUNCTIONS
 """
-
+# No sim env logic here
 def is_CPD():
     """check if CONTROL PERIOD STATUS is active - a period of peak loading on distribution network.
     Keyword arguments: None
@@ -214,27 +232,27 @@ def is_CPD():
             logging.info("CPD INACTIVE")
             return False
 
-def handle_cpd_event(status, battery_charge):
+def handle_cpd_event(status, battery_charge, virtual_battery = []):
     """Handle CPD event, prioritize selling power"""
     export_rate = math.log2(battery_charge + 1)  # Calculate log base 2 of battery_charge
     status = "Exporting - CPD active"
     logging.info(f"CPD active - Exporting {export_rate} with status {status}")
-    discharge_to_grid(export_rate)
+    discharge_to_grid(export_rate, virtual_battery = virtual_battery)
     return status
-
+# No sim env logic here
 def is_CPD_period():
     #Auora congestion period runs from roughly mid may to mid september
     month = datetime.now().month
     return month in [5,6,7,8,9]
 
-def handle_morning_cpd_period(status, spot_price, spot_price_avg, suggested_IE, battery_charge):
+def handle_morning_cpd_period(status, spot_price, spot_price_avg, suggested_IE, battery_charge,virtual_battery = []):
     """Handle morning CPD period"""
     logging.info("CPD CHARGING PERIOD")
     if spot_price <= spot_price_avg:
         logging.info("SPOT PRICE IS LESS THAN AVERAGE CHARGING")
         suggested_IE = config.IE_MAX_RATE * (100 - battery_charge) / 100
         status = f"CPD Night Charge: {suggested_IE}"
-        charge_from_grid(suggested_IE)
+        charge_from_grid(suggested_IE, virtual_battery = virtual_battery)
     else:
         logging.info("SPOT PRICE IS MORE AVERAGE PAUSE")
         status = "CPD Night Charge: Price High"
@@ -244,18 +262,19 @@ def handle_morning_cpd_period(status, spot_price, spot_price_avg, suggested_IE, 
 GRID FUNCTIONS
 """
 
-def charge_from_grid(rate_to_charge):
+def charge_from_grid(rate_to_charge,virtual_battery = []):
     """ import power from grid
     Keyword arguments: rate to charge
     """
 
     if (config.PROD):
         client.write_register(2703, int(rate_to_charge*0.01 if rate_to_charge > 0 else 1000))
-
+    elif (config.VBATTERY):
+        virtual_battery.current_charge = int(rate_to_charge)
     logging.info(f"Importing from Grid @ {rate_to_charge/1000} kWh" )
     return
 
-def discharge_to_grid(rate_to_discharge):
+def discharge_to_grid(rate_to_discharge,virtual_battery = []):
     """ export power to grid
     Keyword arguments: rate to discharge    
     """
@@ -268,32 +287,35 @@ def discharge_to_grid(rate_to_discharge):
         builder.add_16bit_int(rate_to_discharge if rate_to_discharge < 0 else -1000)
         payload = builder.to_registers()
         client.write_register(2703, payload[0])  
-    
+    elif (config.VBATTERY):
+        virtual_battery.current_discharge = -int(rate_to_discharge)
     return
 
-def get_grid_load():
+def get_grid_load(virtual_battery = []):
     if (config.PROD):
         l1 = client.read_holding_registers(820).registers[0]
         l2 = client.read_holding_registers(821).registers[0]
         l3 = client.read_holding_registers(822).registers[0]
         grid_load= l1 + l2 + l3
+    elif (config.VBATTERY):
+        grid_load = virtual_battery.current_charge
     else:
         grid_load = random.randint(-20000, 20000)
     logging.info(f"Grid Load {grid_load}")
     return grid_load
 
-def handle_export_to_grid(status, spot_price, export_price, spot_price_max):
+def handle_export_to_grid(status, spot_price, export_price, spot_price_max,virtual_battery = []):
     """Handle exporting power to grid"""
     status = "Exporting - Spot Price High"
     suggested_IE = calc_discharge_rate(spot_price, export_price, spot_price_max)
-    discharge_to_grid(suggested_IE)
+    discharge_to_grid(suggested_IE, virtual_battery = virtual_battery)
     return status
 
-def handle_import_from_grid(status, spot_price, import_price, spot_price_min, power_load):
+def handle_import_from_grid(status, spot_price, import_price, spot_price_min, power_load, virtual_battery = []):
     """Handle importing power from grid"""
     status = "Importing - Spot price low"
     suggested_IE = calc_charge_rate(spot_price, import_price, spot_price_min) + power_load
-    charge_from_grid(suggested_IE)
+    charge_from_grid(suggested_IE, virtual_battery = virtual_battery)
     return status
 
 def adjust_low_price_threshold(battery_charge):
@@ -321,6 +343,8 @@ def get_solar_generation():
         solar_generation = client.read_holding_registers(808).registers[0]
         solar_generation += client.read_holding_registers(809).registers[0]
         solar_generation += client.read_holding_registers(810).registers[0]
+    elif (config.VBATTERY):
+        solar_generation = 0
     else:
         solar_generation = random.randint(0, 20000)
 
@@ -377,7 +401,7 @@ def handle_manual_override(status, suggested_IE):
 DEFAULT FUNCTIONS
 """
     
-def get_battery_status():
+def get_battery_status(virtual_battery = []):
     """
     return the battery charge and status
     Keyword arguments: None
@@ -385,6 +409,8 @@ def get_battery_status():
     if (config.PROD):  
         result = client.read_holding_registers(843)
         battery_charge= int(result.registers[0])
+    elif (config.VBATTERY):
+        battery_charge = virtual_battery.current_soc/100
     else:
         battery_charge=  random.randint(0, 100)    
     
@@ -408,13 +434,16 @@ def get_existing_load():
         l2 = client.read_holding_registers(818).registers[0]
         l3 = client.read_holding_registers(819).registers[0]
         power_load = l1 + l2 + l3
+    elif (config.VBATTERY):
+        power_load = 0
+    
     else:
         power_load= random.randint(5000, 10000)
 
     logging.info(f"Power Load {power_load}")
     return power_load
     
-def get_actual_IE():
+def get_actual_IE(virtual_battery = []):
     """return current power load
     Keyword arguments: None
     """    
@@ -423,6 +452,8 @@ def get_actual_IE():
         power_load = client.read_holding_registers(2600).registers[0]
         power_load += client.read_holding_registers(2601).registers[0]
         power_load += client.read_holding_registers(2602).registers[0]
+    elif (config.VBATTERY):
+        power_load = virtual_battery.current_charge - virtual_battery.current_discharge
     else:
         power_load= random.randint(-config.IE_MAX_RATE, config.IE_MAX_RATE)
 
@@ -442,6 +473,7 @@ def get_status():
 
     return row
 
+# No sim env functionality yet
 def get_consumption():
     if (config.PROD):
         l1 = client.read_holding_registers(817).registers[0]
@@ -573,23 +605,23 @@ def create_db_connection():
 
     return conn
 
-def handle_high_power_demand(status, spot_price, spot_price_avg, power_load, suggested_IE):
+def handle_high_power_demand(status, spot_price, spot_price_avg, power_load, suggested_IE, virtual_battery = []):
     """Handle high power demand"""
     if spot_price <= config.USE_GRID_PRICE:
         status = "Price lower than battery cycle cost"
         logging.info("SPOT PRICE low and demand high")
         suggested_IE = config.IE_MAX_RATE
-        charge_from_grid(suggested_IE)
+        charge_from_grid(suggested_IE, virtual_battery = virtual_battery)
     elif spot_price < spot_price_avg:
         status = f"Price lower than average: {power_load}"
-        charge_from_grid(power_load)
+        charge_from_grid(power_load, virtual_battery = virtual_battery)
     else:
         status = "Price high run on batteries"
         reset_to_default()
     return status
 
 def handle_default_case(
-    status, battery_charge, battery_low, battery_full, spot_price, spot_price_avg, power_load
+    status, battery_charge, battery_low, battery_full, spot_price, spot_price_avg, power_load, virtual_battery = []
 ):
     """Handle default case"""
     if is_CPD_period() and spot_price <= spot_price_avg * 1:
@@ -599,7 +631,7 @@ def handle_default_case(
         if battery_charge > 50:
             status = "CPD: partial covering"
             suggested_IE = suggested_IE * ((100 - battery_charge) / 100)  # Take the inverse of the battery from the grid if battery is more than half full
-        charge_from_grid(suggested_IE)
+        charge_from_grid(suggested_IE, virtual_battery = virtual_battery)
 
     else:
         logging.info("Handling default: resetting")
