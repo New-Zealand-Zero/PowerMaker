@@ -126,10 +126,8 @@ def get_spot_price(datetimestamp = datetime(2023,1,1,0,0,0)):
             # Get spot price from the current timestamp being simulated
             conn = create_db_connection()       
             c = conn.cursor()
-            print("SELECT DollarsPerMegaWattHour from historic_spot where PublishDateTime < '"+datetime.strftime(datetimestamp,"%Y-%m-%dT%H:%M:%S")+"'")
             c.execute("SELECT DollarsPerMegaWattHour from historic_spot where PublishDateTime = (SELECT Max(PublishDateTime) from historic_spot where PublishDateTime < '"+datetime.strftime(datetimestamp,"%Y-%m-%dT%H:%M:%S")+"')")
             row = c.fetchone()
-            print(row)
             c.close()
             conn.close()
             

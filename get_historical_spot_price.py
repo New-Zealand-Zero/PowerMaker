@@ -8,54 +8,24 @@ from sqlalchemy import create_engine
 import sys
 import time
 import logging
+from dateutil.relativedelta import relativedelta
 
 sys.path.append('../')
 
 from powermakerfunctions import create_db_connection
 import config
 
-r = requests.post('https://api.electricityinfo.co.nz/login/oauth2/token', json={
-    "grant_type": "client_credentials",
-    "client_id": 'Ubr1lMj299t7ZbHtlB7FhGjSFM5m79JP',
-    "client_secret": '3ETh13MW1gNrbZ7SLnhYQtdsjdk6j1dd',
-})
 
-access_token = r.json().get('access_token')
-
-print(access_token)
-
-conn = http.client.HTTPSConnection("api.electricityinfo.co.nz")
-headers = {'accept': "application/json",
-           'Authorization': 'Bearer %s' % access_token}
-
-# conn.request("GET", "/api/market-prices/v1/schedules", headers=headers)
-
-# res = conn.getresponse()
-# data = res.read()
-
-# print(data.decode("utf-8"),"\n")
-
-# conn.request("GET", "", headers=headers)
-
-# res = conn.getresponse()
-# data = res.read()
-
-# print(data.decode("utf-8"),"\n")
-
-# # conn.request("GET", "/api/market-prices/v1/prices?schedules=RTP&marketType=R&nodes=%CML0331&from=&to=&back=&forward=&offset=", headers=headers)
-
-# # res = conn.getresponse()
-# # data = res.read()
-
-# # print("this is the one \n",data.decode("utf-8"),"\n")
 
 now = dt.datetime(2023,3,1)#dt.datetime.now() - dt.timedelta(minutes=1)
 
 startday = dt.datetime(2023,1,1) - dt.timedelta(minutes = 10)
 node = 'CML0331'
 
+final_prices = pd.DataFrame()
 rtd_prices = pd.DataFrame()
 
+# Getting RTD
 for day in range((now - startday).days):
 
     currentday = startday+dt.timedelta(days=day)
@@ -87,8 +57,44 @@ rtd_prices  = rtd_prices.reset_index(drop=True)
 
 rtd_prices['PublishDateTime'] = pd.to_datetime(rtd_prices['PublishDateTime'])
 
+
+# Getting FINAL prices 
+
+# get final prices for the same time period
+start_month = [startday+ dt.timedelta(minutes = 10)]
+end_month = []
+
+while start_month[-1] <= now:
+    end_month.append(start_month[-1] + relativedelta(months=1))
+    start_month.append(end_month[-1]+relativedelta(days=1))
+
+for month in start_month:
+    
+    month_string = dt.datetime.strftime(month,"%Y%m")
+    
+    # EMI link (WITS API only keeps data to -7 days for RTD, not useful enough here)
+    while True:
+        try:
+            currentmonth_data = pd.read_csv("https://www.emi.ea.govt.nz/Wholesale/Datasets/DispatchAndPricing/FinalEnergyPrices/ByMonth/"+month_string+"_FinalEnergyPrices.csv")
+            break
+        except Exception as e:
+            
+            print("Exception: "+str(e))
+            time.sleep(60)    
+    
+    currentmonth_data = currentmonth_data.loc[(currentmonth_data['PointOfConnection']==node),['TradingDate','TradingPeriod','DollarsPerMegawattHour']]
+    
+    
+    currentmonth_data['IntervalStart'] = [dt.datetime.strptime(date,"%Y-%m-%d") + dt.timedelta(minutes = int(30*(time-1))) for date, time in zip(currentmonth_data['TradingDate'].values,currentmonth_data['TradingPeriod'].values)]
+    currentmonth_data['IntervalEnd'] = [dt.datetime.strptime(date,"%Y-%m-%d") + dt.timedelta(minutes = int(30*(time))) for date, time in zip(currentmonth_data['TradingDate'].values,currentmonth_data['TradingPeriod'].values)]
+    
+    currentmonth_data = currentmonth_data.reset_index(drop=True)
+    
+    final_prices =  pd.concat([final_prices,currentmonth_data])
+
 engine = create_engine('mysql+pymysql://pm:pm@localhost/pm')
 
 rtd_prices.to_sql('historic_spot',con =  engine, if_exists='replace',index=False)
+final_prices.to_sql('historic_spot_final',con =  engine, if_exists='replace',index=False)
 
 #conn.close()
