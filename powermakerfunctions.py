@@ -172,7 +172,7 @@ def get_spot_price_stats():
         export_price=0
     
     #New theory here is to always import if cheap enough but only export if MIN Margin is high enough
-    # update the import price if less than min margin
+    # update the import price if less than min margin 
     # if (import_price > (spot_price_avg - config.HALF_MIN_MARGIN)):
     #     logging.info (f"calculated import price {import_price:.4f} below min margin updated to min")
     #     import_price = spot_price_avg - config.HALF_MIN_MARGIN
@@ -214,14 +214,6 @@ def is_CPD():
             logging.info("CPD INACTIVE")
             return False
 
-def handle_cpd_event(status, battery_charge):
-    """Handle CPD event, prioritize selling power"""
-    export_rate = math.log2(battery_charge + 1)  # Calculate log base 2 of battery_charge
-    status = "Exporting - CPD active"
-    logging.info(f"CPD active - Exporting {export_rate} with status {status}")
-    discharge_to_grid(export_rate)
-    return status
-
 def is_CPD_period():
     #Auora congestion period runs from roughly mid may to mid september
     month = datetime.now().month
@@ -239,6 +231,28 @@ def handle_morning_cpd_period(status, spot_price, spot_price_avg, suggested_IE, 
         logging.info("SPOT PRICE IS MORE AVERAGE PAUSE")
         status = "CPD Night Charge: Price High"
     return status
+
+"""
+functions for the rate of distribution during a CPD period
+"""
+
+def linear_discharge_rate(battery_charge, min_battery, max_rate):
+    """Handle discharge rate during cpd at a linear rate"""
+    m = max_rate / (min_battery - 100)
+    b = -max_rate - m * 100
+    return m * battery_charge + b
+
+def quadratic_discharge_rate(battery_charge, min_battery, max_rate):
+    """Handle discharge rate during CPD at a quadratic rate"""
+    a = -max_rate / ((100 - min_battery) ** 2)
+    b = -2 * a * min_battery
+    c = max_rate * (1 - (min_battery / 100) ** 2)
+    return a * battery_charge ** 2 + b * battery_charge + c
+
+def exponential_discharge_rate(battery_charge, min_battery, max_rate):
+    """Handle discharge rate during CPD at an exponential rate"""
+    k = math.log(max_rate / 0.01) / (100 - min_battery)  # Adjust k to fit the desired endpoint
+    return -max_rate * math.exp(k * (battery_charge - 100))
 
 """
 GRID FUNCTIONS
