@@ -28,6 +28,7 @@ import config
 from powermakerfunctions import (
     adjust_low_price_threshold,
     create_db_connection,
+    discharge_to_grid,
     get_spot_price,
     get_spot_price_stats,
     get_solar_generation,
@@ -45,6 +46,7 @@ from powermakerfunctions import (
     get_override,
     get_grid_load,
     is_CPD_period,
+    linear_discharge_rate,
     reset_to_default,
 )
 
@@ -95,8 +97,13 @@ def main():
                 status = handle_manual_override(status, suggested_IE)
             elif cdp:
                 # CPD event active, prioritize selling power
-                logging.info(f"Handling cpd event\n")
-                status = handle_cpd_event(status, battery_charge)
+                status = "Exporting - CPD active"
+                # discharge_to_grid(config.IE_MIN_RATE*-1)
+
+                # Calculate the export rate based on the battery charge
+                export_rate = linear_discharge_rate(battery_charge, config.MIN_BATTERY_FOR_EXPORT, config.IE_MAX_RATE)
+                logging.info(f"CPD active - Exporting {export_rate} with status {status} at export rate {export_rate}")
+                discharge_to_grid(export_rate)
             elif spot_price <= config.LOW_PRICE_IMPORT and not battery_full:
                 # Spot price lower than low price threshold
                 logging.info(f"Handling handle_low_spot_price\n")

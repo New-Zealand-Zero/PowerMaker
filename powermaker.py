@@ -52,8 +52,13 @@ while(True):
             #there is CPD active so immediately go into low export state
             status = "Exporting - CPD active"
             # discharge_to_grid(config.IE_MIN_RATE*-1)
-            export_rate = math.log2(battery_charge + 1)  # Calculate log base 2 of battery_charge
-            logging.info(f"CPD active - Exporting {export_rate} with status {status}")
+
+            # Calculate the export rate based on the battery charge
+            # Starting off with a linear discharge rate, but this could be changed to a more complex function
+            # But want to test that we can have discharge change from 100 battery to the config
+            # for MIN_BATTERY_FOR_EXPORT. 
+            export_rate = linear_discharge_rate(battery_charge, config.MIN_BATTERY_FOR_EXPORT, config.IE_MAX_RATE)
+            logging.info(f"CPD active - Exporting {export_rate} with status {status} - Target min battery {config.MIN_BATTERY_FOR_EXPORT}, current battery {battery_charge}")
             discharge_to_grid(export_rate)
 
         elif spot_price<= config.LOW_PRICE_IMPORT and not battery_full:
@@ -76,8 +81,6 @@ while(True):
                 status = f"Price high run on batteries"
                 reset_to_default() # move to 100% battery power as price is too  high
 
-    
-        
         elif spot_price>export_price and spot_price > config.USE_GRID_PRICE and not battery_low:
             #export power to grid if price is greater than calc export price
             status = f"Exporting - Spot Price High"
