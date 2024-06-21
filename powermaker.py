@@ -37,6 +37,8 @@ while(True):
         logging.info("SPOT PRICE:%s LOW THREHOLD:%s" %(spot_price,config.LOW_PRICE_IMPORT))
 
         # make decision based on current state
+        if (config.OVERRIDE_IE):
+            discharge_to_grid(config.OVERRIDE_RATE)
         if (override):
             #Manual override
             if (suggested_IE<0):
@@ -57,9 +59,9 @@ while(True):
             # Starting off with a linear discharge rate, but this could be changed to a more complex function
             # But want to test that we can have discharge change from 100 battery to the config
             # for MIN_BATTERY_FOR_EXPORT. 
-            export_rate = linear_discharge_rate(battery_charge, config.MIN_BATTERY_FOR_EXPORT, config.IE_MAX_RATE)
-            logging.info(f"CPD active - Exporting {export_rate} with status {status} - Target min battery {config.MIN_BATTERY_FOR_EXPORT}, current battery {battery_charge}")
-            discharge_to_grid(export_rate)
+            suggested_IE = linear_discharge_rate(battery_charge, config.MIN_BATTERY_FOR_EXPORT, config.CPD_MIN_BATTERY_EXPORT_RATE, config.IE_MAX_RATE)
+            logging.info(f"CPD active - Exporting {suggested_IE} with status {status} - Target min battery {config.MIN_BATTERY_FOR_EXPORT}, current battery {battery_charge}")
+            discharge_to_grid(suggested_IE)
 
         elif spot_price<= config.LOW_PRICE_IMPORT and not battery_full:
             #spot price less than Low price min import
