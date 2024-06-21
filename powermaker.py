@@ -37,7 +37,7 @@ while(True):
         logging.info("SPOT PRICE:%s LOW THREHOLD:%s" %(spot_price,config.LOW_PRICE_IMPORT))
 
         # make decision based on current state
-        if (config.OVERRIDE_IE):
+        if (config.OVERRIDE_IE == 'true'):
             discharge_to_grid(config.OVERRIDE_RATE)
         if (override):
             #Manual override
