@@ -236,8 +236,11 @@ def handle_morning_cpd_period(status, spot_price, spot_price_avg, suggested_IE, 
 functions for the rate of distribution during a CPD period
 """
 
-def linear_discharge_rate(battery_charge, min_battery, max_rate):
+def linear_discharge_rate(battery_charge, min_battery, cpd_min_battery_rate, max_rate):
     """Handle discharge rate during cpd at a linear rate"""
+    if battery_charge <= min_battery:
+        return cpd_min_battery_rate
+    
     m = max_rate / (min_battery - 100)
     b = -max_rate - m * 100
     return m * battery_charge + b
@@ -281,6 +284,7 @@ def discharge_to_grid(rate_to_discharge):
         builder.reset()
         builder.add_16bit_int(rate_to_discharge if rate_to_discharge < 0 else -1000)
         payload = builder.to_registers()
+        logging.info(f"Exporting to Grid with payload {payload[0]}" )
         client.write_register(2703, payload[0])  
     
     return
