@@ -16,6 +16,7 @@ def set_grid_point(rate=0):
     payload = builder.to_registers()
     print (payload[0])
     client.write_register(2703, payload[0])
+    print("Actual rate", client.read_holding_registers(2703).registers[0])
     print("Grid @ %s KwH, battery: %s percent", rate, get_battery_charge())
     return
    
