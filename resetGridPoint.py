@@ -1,3 +1,4 @@
+import argparse
 from pymodbus.payload import BinaryPayloadBuilder, Endian
 from pymodbus.client.sync import ModbusTcpClient as ModbusClient
 
@@ -19,4 +20,7 @@ def set_grid_point(rate=0):
     return
    
 if __name__ == "__main__":
-    set_grid_point(0)
+    parser = argparse.ArgumentParser(description='Set grid point rate.')
+    parser.add_argument('rate', type=int, help='Rate to set the grid point to')
+    args = parser.parse_args()
+    set_grid_point(args.rate)
