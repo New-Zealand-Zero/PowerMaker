@@ -17,3 +17,6 @@ def set_grid_point(rate=0):
     client.write_register(2703, payload[0])
     print("Grid @ %s KwH, battery: %s percent", rate, get_battery_charge())
     return
+   
+if __name__ == "__main__":
+    set_grid_point(0)
