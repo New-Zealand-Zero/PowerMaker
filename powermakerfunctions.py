@@ -244,6 +244,7 @@ functions for the rate of distribution during a CPD period
 def linear_discharge_rate(battery_charge, min_battery, cpd_min_battery_rate, max_rate):
     """Handle discharge rate during cpd at a linear rate"""
     if battery_charge <= min_battery:
+        logging.info("Battery charge is below the minimum threshold - pausing import")
         return cpd_min_battery_rate
     
     m = max_rate / (min_battery - 100)

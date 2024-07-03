@@ -40,6 +40,7 @@ while(True):
 
         # make decision based on current state
         if (config.OVERRIDE_IE == 'true'):
+            logging.info("Config override true")
             discharge_to_grid(config.OVERRIDE_RATE)
         if (override):
             #Manual override
