@@ -219,6 +219,10 @@ def is_CPD_period():
     month = datetime.now().month
     return month in [5,6,7,8,9]
 
+def get_register_rate():
+    logging.info("Actual rate from register", client.read_holding_registers(2703).registers[0])
+    return
+
 def handle_morning_cpd_period(status, spot_price, spot_price_avg, suggested_IE, battery_charge):
     """Handle morning CPD period"""
     logging.info("CPD CHARGING PERIOD")
