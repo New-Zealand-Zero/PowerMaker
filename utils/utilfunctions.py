@@ -13,8 +13,11 @@ from pymodbus.client.sync import ModbusTcpClient as ModbusClient
 from pymodbus.payload import BinaryPayloadDecoder
 from pymodbus.payload import BinaryPayloadBuilder, Endian, BinaryPayloadDecoder
 
+# IP Address of the Modbus TCP server in the Forest Lodge Shed? - Check that's correct with Mike
 client = ModbusClient('192.168.86.37', port='502', auto_open=True, auto_close=True)
 
+# This function checks if the CONTROL PERIOD STATUS is active - which is a
+# period of peak loading on the distribution network.
 def is_CPD():
     """check if CONTROL PERIOD STATUS is active - a period of peak loading on distribution network.
     Keyword arguments: None

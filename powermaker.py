@@ -32,26 +32,40 @@ while(True):
         override, suggested_IE = get_override()     
         now = datetime.now().time()
 
+
         logging.info("%s - battery charging ratio" %((100-battery_charge)/100))
         logging.info("----------------------")
         logging.info("SPOT PRICE:%s LOW THREHOLD:%s" %(spot_price,config.LOW_PRICE_IMPORT))
+        get_register_rate()
 
         # make decision based on current state
-        if (override):
-            #Manual override
-            if (suggested_IE<0):
-                status = f"Exporting - Manual Override"
-                discharge_to_grid(suggested_IE)
-            elif (suggested_IE>0):
-                status = f"Importing - Manual Override"
-                charge_from_grid(suggested_IE)
-            else:
-                status = f"No I/E - Manual Override"
-                reset_to_default() 
+        if (config.OVERRIDE_IE == 'true'):
+            logging.info("Config override true")
+            discharge_to_grid(config.OVERRIDE_RATE)
+            status = "Config Override"
+        # if (override):
+        #     #Manual override
+        #     if (suggested_IE<0):
+        #         status = f"Exporting - Manual Override"
+        #         discharge_to_grid(suggested_IE)
+        #     elif (suggested_IE>0):
+        #         status = f"Importing - Manual Override"
+        #         charge_from_grid(suggested_IE)
+        #     else:
+        #         status = f"No I/E - Manual Override"
+        #         reset_to_default() 
         elif cdp:
             #there is CPD active so immediately go into low export state
             status = "Exporting - CPD active"
-            discharge_to_grid(config.IE_MIN_RATE*-1)
+            # discharge_to_grid(config.IE_MIN_RATE*-1)
+
+            # Calculate the export rate based on the battery charge
+            # Starting off with a linear discharge rate, but this could be changed to a more complex function
+            # But want to test that we can have discharge change from 100 battery to the config
+            # for MIN_BATTERY_FOR_EXPORT. 
+            suggested_IE = linear_discharge_rate(battery_charge, config.MIN_BATTERY_FOR_EXPORT, config.CPD_MIN_BATTERY_EXPORT_RATE, config.IE_MAX_RATE)
+            logging.info(f"CPD active - Exporting {suggested_IE} with status {status} - Target min battery {config.MIN_BATTERY_FOR_EXPORT}, current battery {battery_charge}")
+            discharge_to_grid(suggested_IE)
 
         elif spot_price<= config.LOW_PRICE_IMPORT and not battery_full:
             #spot price less than Low price min import
@@ -73,8 +87,6 @@ while(True):
                 status = f"Price high run on batteries"
                 reset_to_default() # move to 100% battery power as price is too  high
 
-    
-        
         elif spot_price>export_price and spot_price > config.USE_GRID_PRICE and not battery_low:
             #export power to grid if price is greater than calc export price
             status = f"Exporting - Spot Price High"
@@ -124,6 +136,9 @@ while(True):
         conn.commit()
 
     except Exception as e:
+        # When exeption happens make sure discharge sets to zero
+        # As we don't know what the price is doing and can get stung with high prices
+        # Prices
         error = str(e)
         print (error)
         if error == "SpotPriceDataEmpty":
