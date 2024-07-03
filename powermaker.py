@@ -42,6 +42,7 @@ while(True):
         if (config.OVERRIDE_IE == 'true'):
             logging.info("Config override true")
             discharge_to_grid(config.OVERRIDE_RATE)
+            status = "Config Override"
         # if (override):
         #     #Manual override
         #     if (suggested_IE<0):
