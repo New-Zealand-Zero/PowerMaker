@@ -42,17 +42,17 @@ while(True):
         if (config.OVERRIDE_IE == 'true'):
             logging.info("Config override true")
             discharge_to_grid(config.OVERRIDE_RATE)
-        if (override):
-            #Manual override
-            if (suggested_IE<0):
-                status = f"Exporting - Manual Override"
-                discharge_to_grid(suggested_IE)
-            elif (suggested_IE>0):
-                status = f"Importing - Manual Override"
-                charge_from_grid(suggested_IE)
-            else:
-                status = f"No I/E - Manual Override"
-                reset_to_default() 
+        # if (override):
+        #     #Manual override
+        #     if (suggested_IE<0):
+        #         status = f"Exporting - Manual Override"
+        #         discharge_to_grid(suggested_IE)
+        #     elif (suggested_IE>0):
+        #         status = f"Importing - Manual Override"
+        #         charge_from_grid(suggested_IE)
+        #     else:
+        #         status = f"No I/E - Manual Override"
+        #         reset_to_default() 
         elif cdp:
             #there is CPD active so immediately go into low export state
             status = "Exporting - CPD active"
