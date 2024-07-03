@@ -220,7 +220,8 @@ def is_CPD_period():
     return month in [5,6,7,8,9]
 
 def get_register_rate():
-    logging.info("Actual rate from register", str(client.read_holding_registers(2703).registers[0]))
+    rate = str(client.read_holding_registers(2703).registers[0])
+    logging.info("Actual rate from register" + rate)
     return
 
 def handle_morning_cpd_period(status, spot_price, spot_price_avg, suggested_IE, battery_charge):
