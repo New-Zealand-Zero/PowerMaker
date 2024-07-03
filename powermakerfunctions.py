@@ -285,8 +285,7 @@ def discharge_to_grid(rate_to_discharge):
         builder.add_16bit_int(rate_to_discharge if rate_to_discharge < 0 else -1000)
         payload = builder.to_registers()
         logging.info(f"Exporting to Grid with payload {payload[0]}" )
-        client.write_register(2703, payload[0])  
-    
+        client.write_register(2703, payload[0])
     return
 
 def get_grid_load():

@@ -32,9 +32,11 @@ while(True):
         override, suggested_IE = get_override()     
         now = datetime.now().time()
 
+
         logging.info("%s - battery charging ratio" %((100-battery_charge)/100))
         logging.info("----------------------")
         logging.info("SPOT PRICE:%s LOW THREHOLD:%s" %(spot_price,config.LOW_PRICE_IMPORT))
+        get_register_rate()
 
         # make decision based on current state
         if (config.OVERRIDE_IE == 'true'):
