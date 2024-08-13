@@ -27,19 +27,29 @@ def charge_from_grid(rate_to_charge):
     """ import power from grid
     Keyword arguments: rate to charge
     """
-    client.write_register(2703, int(rate_to_charge*0.01 if rate_to_charge > 0 else 1000), unit=1)
+    upper, lower = split_into_ushorts(rate_to_charge)
+
+    client.write_register(2703, upper, unit=1)
+    client.write_register(2704, lower, unit=1)
     return
   
 def discharge_to_grid(rate_to_discharge):
     """ export power to grid
     Keyword arguments: rate to discharge    
     """
-  
-    rate_to_discharge=int(rate_to_discharge*0.01)
-    builder = BinaryPayloadBuilder(byteorder=Endian.Big, wordorder=Endian.Big)
-    builder.reset()
-    builder.add_16bit_int(rate_to_discharge if rate_to_discharge < 0 else -1000)
-    payload = builder.to_registers()
-    client.write_register(2703, payload[0], unit=1)
-    
+    max_int_32 = 2 ** 31 - 1
+    upper, lower = split_into_ushorts(max_int_32 - rate_to_discharge)
+
+    client.write_register(2703, upper, unit=1)
+    client.write_register(2704, lower, unit=1)
     return
+
+
+def split_into_ushorts(number):
+    if not (0 <= number < 2 ** 32):
+        raise ValueError("Number must be between 0 and 4294967295 (inclusive).")
+
+    lower_ushort = number & 0xFFFF
+    upper_ushort = (number >> 16) & 0xFFFF
+
+    return upper_ushort, lower_ushort

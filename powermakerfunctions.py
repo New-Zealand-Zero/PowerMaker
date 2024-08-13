@@ -34,6 +34,8 @@ import pymysql
 import requests
 import traceback
 
+from utils.utilfunctions import split_into_ushorts
+
 # Logging
 logging.basicConfig(level=logging.INFO, format=f'%(asctime)s {"PROD" if config.PROD else "TEST"} %(message)s') 
 
@@ -188,7 +190,7 @@ def get_battery_status():
 def reset_to_default():
 
     if (config.PROD):
-        client.write_register(2703,int(0))
+        client.write_register(2703, int(0))
 
 def is_CPD():
     """check if CONTROL PERIOD STATUS is active - a period of peak loading on distribution network.
@@ -213,7 +215,10 @@ def charge_from_grid(rate_to_charge):
     """
 
     if (config.PROD):
-        client.write_register(2703, int(rate_to_charge*0.01 if rate_to_charge > 0 else 1000))
+        upper, lower = split_into_ushorts(rate_to_charge)
+
+        client.write_register(2703, upper, unit=1)
+        client.write_register(2704, lower, unit=1)
    
     logging.info(f"Importing from Grid @ {rate_to_charge/1000} kWh" )
     return
@@ -225,13 +230,12 @@ def discharge_to_grid(rate_to_discharge):
   
     logging.info(f"Suggested export to Grid @ {rate_to_discharge/1000} kWh" )
     if (config.PROD):
-        rate_to_discharge=int(rate_to_discharge*0.01)
-        builder = BinaryPayloadBuilder(byteorder=Endian.Big, wordorder=Endian.Big)
-        builder.reset()
-        builder.add_16bit_int(rate_to_discharge if rate_to_discharge < 0 else -1000)
-        payload = builder.to_registers()
-        client.write_register(2703, payload[0])  
-    
+        max_int_32 = 2 ** 31 - 1
+        upper, lower = split_into_ushorts(max_int_32 - rate_to_discharge)
+
+        client.write_register(2703, upper, unit=1)
+        client.write_register(2704, lower, unit=1)
+
     return
 
 def get_solar_generation():
