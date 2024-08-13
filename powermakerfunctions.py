@@ -239,11 +239,8 @@ def get_solar_generation():
     Keyword arguments: None
     """
     if (config.PROD):
-        print("3x")
         solar_generation = client.read_holding_registers(808, unit=1).registers[0]
-        print("3y")
         solar_generation += client.read_holding_registers(809, unit=1).registers[0]
-        print("3z")
         solar_generation += client.read_holding_registers(810, unit=1).registers[0]
     else:
         solar_generation = random.randint(0, 20000)
