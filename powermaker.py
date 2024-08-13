@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Importing configeration
+# Importing configuration
 from datetime import time
 import config
 
@@ -15,7 +15,7 @@ from numpy import interp  # To scale values
 import pymysql
 
 # Logging
-logging.basicConfig(level=logging.INFO, format=f'%(asctime)s {"PROD" if config.PROD else "TEST"} %(message)s') 
+logging.basicConfig(level=logging.INFO, format=f'%(asctime)s {"PROD" if config.PROD else "TEST"} %(message)s')
 
 conn = create_db_connection()
 c = conn.cursor()
@@ -23,13 +23,13 @@ while(True):
     try:
         #get current state
         status = "unknown"
-        spot_price = get_spot_price()        
+        spot_price = get_spot_price()
         spot_price_avg, spot_price_min, spot_price_max, import_price, export_price = get_spot_price_stats()
         solar_generation = get_solar_generation()
         power_load = get_existing_load()
         cdp = is_CPD()
         battery_charge, battery_low, battery_full = get_battery_status()
-        override, suggested_IE = get_override()     
+        override, suggested_IE = get_override()
         now = datetime.now().time()
 
         logging.info("%s - battery charging ratio" %((100-battery_charge)/100))

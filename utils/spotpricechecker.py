@@ -6,6 +6,7 @@ from pymodbus.constants import Endian
 from pymodbus.client.sync import ModbusTcpClient as ModbusClient
 from pymodbus.payload import BinaryPayloadDecoder
 from pymodbus.payload import BinaryPayloadBuilder, Endian, BinaryPayloadDecoder
+import config
 
 from utilfunctions import is_CPD
 
@@ -17,7 +18,7 @@ DISCHARGE_RATE_KWH=-10000
 
 Defaults.Timeout = 25
 Defaults.Retries = 5
-client = ModbusClient('192.168.86.60', port='502', auto_open=True, auto_close=True)
+client = ModbusClient(config.MODBUS_CLIENT_IP, port='502', auto_open=True, auto_close=True)
 
 import logging
 logging.basicConfig(filename='spot.log', level=logging.INFO, format='%(asctime)s %(message)s')

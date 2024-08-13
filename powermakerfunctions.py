@@ -38,7 +38,7 @@ import traceback
 logging.basicConfig(level=logging.INFO, format=f'%(asctime)s {"PROD" if config.PROD else "TEST"} %(message)s') 
 
 if (config.PROD):
-    client = ModbusClient('192.168.86.34', port='502', auto_open=True, auto_close=True)
+    client = ModbusClient(config.MODBUS_CLIENT_IP, port='502', auto_open=True, auto_close=True)
 
 def get_spot_price():
     """return the latest power spotprice from OCP
@@ -174,10 +174,10 @@ def get_battery_status():
      Keyword arguments: None
     """
     if (config.PROD):  
-        result = client.read_holding_registers(843)
-        battery_charge= int(result.registers[0])
+        result = client.read_holding_registers(843, unit=1)
+        battery_charge = int(result.registers[0])
     else:
-        battery_charge=  random.randint(0, 100)    
+        battery_charge = random.randint(0, 100)
     
     battery_low = battery_charge <= config.LOW_BATTERY_THRESHOLD
     battery_full = battery_charge >= config.CHARGED_BATTERY_THRESHOLD
@@ -196,7 +196,6 @@ def is_CPD():
     """
 
     if (config.PROD):
-        result = client.read_holding_registers(3422, unit=1)
         result = client.read_holding_registers(3422, unit=1)
         logging.info("CPD ACTIVE" if result.registers[0] == 3 else "CPD INACTIVE")
         return result.registers[0] == 3
@@ -240,9 +239,12 @@ def get_solar_generation():
     Keyword arguments: None
     """
     if (config.PROD):
-        solar_generation = client.read_holding_registers(808).registers[0]
-        solar_generation += client.read_holding_registers(809).registers[0]
-        solar_generation += client.read_holding_registers(810).registers[0]
+        print("3x")
+        solar_generation = client.read_holding_registers(808, unit=1).registers[0]
+        print("3y")
+        solar_generation += client.read_holding_registers(809, unit=1).registers[0]
+        print("3z")
+        solar_generation += client.read_holding_registers(810, unit=1).registers[0]
     else:
         solar_generation = random.randint(0, 20000)
 
@@ -254,9 +256,9 @@ def get_existing_load():
     Keyword arguments: None
     """    
     if (config.PROD):    
-        l1 = client.read_holding_registers(817).registers[0]
-        l2 = client.read_holding_registers(818).registers[0]
-        l3 = client.read_holding_registers(819).registers[0]
+        l1 = client.read_holding_registers(817, unit=1).registers[0]
+        l2 = client.read_holding_registers(818, unit=1).registers[0]
+        l3 = client.read_holding_registers(819, unit=1).registers[0]
         power_load = l1 + l2 + l3
     else:
         power_load= random.randint(5000, 10000)
@@ -270,9 +272,9 @@ def get_actual_IE():
     """    
 
     if (not config.PROD):    
-        power_load = client.read_holding_registers(2600).registers[0]
-        power_load += client.read_holding_registers(2601).registers[0]
-        power_load += client.read_holding_registers(2602).registers[0]
+        power_load = client.read_holding_registers(2600, unit=1).registers[0]
+        power_load += client.read_holding_registers(2601, unit=1).registers[0]
+        power_load += client.read_holding_registers(2602, unit=1).registers[0]
     else:
         power_load= random.randint(-config.IE_MAX_RATE, config.IE_MAX_RATE)
  
@@ -339,9 +341,9 @@ def get_status():
 def get_consumption():
     
     if (config.PROD):
-        l1 = client.read_holding_registers(817).registers[0]
-        l2 = client.read_holding_registers(818).registers[0]
-        l3 = client.read_holding_registers(819).registers[0]
+        l1 = client.read_holding_registers(817, unit=1).registers[0]
+        l2 = client.read_holding_registers(818, unit=1).registers[0]
+        l3 = client.read_holding_registers(819, unit=1).registers[0]
         consumption = l1 + l2 + l3
     else:
         consumption = random.randint(0, 20000)
@@ -351,9 +353,9 @@ def get_consumption():
 def get_grid_load():
     
     if (config.PROD):
-        l1 = client.read_holding_registers(820).registers[0]
-        l2 = client.read_holding_registers(821).registers[0]
-        l3 = client.read_holding_registers(822).registers[0]
+        l1 = client.read_holding_registers(820, unit=1).registers[0]
+        l2 = client.read_holding_registers(821, unit=1).registers[0]
+        l3 = client.read_holding_registers(822, unit=1).registers[0]
         grid_load= l1 + l2 + l3
     else:
         grid_load = random.randint(-20000, 20000)
