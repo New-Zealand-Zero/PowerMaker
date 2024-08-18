@@ -12,8 +12,9 @@ from pymodbus.constants import Endian
 from pymodbus.client.sync import ModbusTcpClient as ModbusClient
 from pymodbus.payload import BinaryPayloadDecoder
 from pymodbus.payload import BinaryPayloadBuilder, Endian, BinaryPayloadDecoder
+import config
 
-client = ModbusClient('192.168.86.37', port='502', auto_open=True, auto_close=True)
+client = ModbusClient(config.MODBUS_CLIENT_IP, port='502', auto_open=True, auto_close=True)
 
 def is_CPD():
     """check if CONTROL PERIOD STATUS is active - a period of peak loading on distribution network.
@@ -26,19 +27,29 @@ def charge_from_grid(rate_to_charge):
     """ import power from grid
     Keyword arguments: rate to charge
     """
-    client.write_register(2703, int(rate_to_charge*0.01 if rate_to_charge > 0 else 1000))
+    upper, lower = split_into_ushorts(rate_to_charge)
+
+    client.write_register(2703, upper, unit=1)
+    client.write_register(2704, lower, unit=1)
     return
   
 def discharge_to_grid(rate_to_discharge):
     """ export power to grid
     Keyword arguments: rate to discharge    
     """
-  
-    rate_to_discharge=int(rate_to_discharge*0.01)
-    builder = BinaryPayloadBuilder(byteorder=Endian.Big, wordorder=Endian.Big)
-    builder.reset()
-    builder.add_16bit_int(rate_to_discharge if rate_to_discharge < 0 else -1000)
-    payload = builder.to_registers()
-    client.write_register(2703, payload[0])  
-    
+    max_int_32 = 2 ** 31 - 1
+    upper, lower = split_into_ushorts(max_int_32 - rate_to_discharge)
+
+    client.write_register(2703, upper, unit=1)
+    client.write_register(2704, lower, unit=1)
     return
+
+
+def split_into_ushorts(number):
+    if not (0 <= number < 2 ** 32):
+        raise ValueError("Number must be between 0 and 4294967295 (inclusive).")
+
+    lower_ushort = number & 0xFFFF
+    upper_ushort = (number >> 16) & 0xFFFF
+
+    return upper_ushort, lower_ushort
